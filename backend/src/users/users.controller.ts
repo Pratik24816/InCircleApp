@@ -9,7 +9,6 @@ import {
   UploadedFile,
   ParseUUIDPipe,
   BadRequestException,
-  UseFilters,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -19,15 +18,20 @@ import { GetUser } from '../common/decorators/get-user.decorator';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CatalogService } from '../catalog/catalog.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly catalogService: CatalogService,
+  ) {}
 
   @Get('me')
-  getMe(@GetUser() user: User) {
-    return user;
+  async getMe(@GetUser() user: User) {
+    const interestIds = await this.catalogService.getUserInterestIds(user.id);
+    return { ...user, interestIds };
   }
 
   @Patch('profile')

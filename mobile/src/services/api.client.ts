@@ -61,7 +61,7 @@ export function getApiErrorMessage(error: unknown): string {
       return data.message;
     }
     if (error.message === 'Network Error') {
-      return `Cannot reach backend at ${API_BASE_URL}. Check DEV_API_HOST and that the server is running.`;
+      return `Cannot reach backend at ${API_BASE_URL}. Same Wi-Fi? Set DEV_API_HOST in mobile/src/config/api.config.local.ts to your PC IP. Or USB: adb reverse tcp:3000 tcp:3000 and use 127.0.0.1.`;
     }
     return error.message;
   }

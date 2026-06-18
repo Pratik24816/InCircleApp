@@ -52,7 +52,7 @@ export class AuthService {
 
   async generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
-    
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('auth.jwtAccessSecret'),
@@ -65,6 +65,22 @@ export class AuthService {
     ]);
 
     return { accessToken, refreshToken };
+  }
+
+  async devLogin(email: string) {
+    if (process.env.ENABLE_DEV_AUTH !== 'true') {
+      throw new ForbiddenException('Dev login is disabled. Set ENABLE_DEV_AUTH=true in backend/.env');
+    }
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException(`No seed user found for ${email}. Run: npm run seed`);
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email);
+    await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return { tokens, user };
   }
 
   async signInWithGoogle(idToken: string) {

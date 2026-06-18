@@ -49,6 +49,7 @@ export function ProfileSetupScreen() {
         fullName: fullName.trim(),
         username: username.trim(),
         bio: bio.trim() || undefined,
+        city: city.trim() || 'Ahmedabad',
       });
       setSelectedCity(city.trim() || 'Ahmedabad');
       navigation.replace('InterestSelection');

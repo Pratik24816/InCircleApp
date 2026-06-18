@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ActivityCard } from '../components/ActivityCard';
 import { EmptyState } from '../components/EmptyState';
 import { ScreenBg } from '../components/ScreenBg';
-import { MOCK_ACTIVITIES, myCreatedActivities, myJoinedActivities } from '../data/mock';
-import { MOCK_ME } from '../data/mock';
+import { fetchMyActivities } from '../services/activities.service';
+import type { Activity } from '../types/auth';
 import { colors, spacing, typography } from '../theme/tokens';
 import type { MainStackParamList } from '../navigation/types';
 
@@ -16,13 +16,27 @@ type TabKey = 'created' | 'joined' | 'done';
 export function MyEventsScreen() {
   const navigation = useNavigation<Nav>();
   const [tab, setTab] = useState<TabKey>('joined');
+  const [data, setData] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const data =
-    tab === 'created'
-      ? myCreatedActivities(MOCK_ME.id)
-      : tab === 'joined'
-        ? myJoinedActivities(MOCK_ME.id)
-        : MOCK_ACTIVITIES.filter(a => a.status === 'done');
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const role = tab === 'done' ? 'completed' : tab;
+      const items = await fetchMyActivities(role);
+      setData(items);
+    } catch {
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [tab]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return (
     <ScreenBg>
@@ -36,7 +50,9 @@ export function MyEventsScreen() {
         ))}
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 100 }}>
-        {data.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : data.length === 0 ? (
           <EmptyState title="Nothing here yet" subtitle="Join or host something IRL." />
         ) : (
           data.map(a => (

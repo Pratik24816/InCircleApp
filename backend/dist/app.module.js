@@ -17,6 +17,9 @@ const database_config_1 = __importDefault(require("./config/database.config"));
 const auth_config_1 = __importDefault(require("./config/auth.config"));
 const users_module_1 = require("./users/users.module");
 const auth_module_1 = require("./auth/auth.module");
+const catalog_module_1 = require("./catalog/catalog.module");
+const activities_module_1 = require("./activities/activities.module");
+const reports_module_1 = require("./reports/reports.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -44,6 +47,9 @@ exports.AppModule = AppModule = __decorate([
             }),
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
+            catalog_module_1.CatalogModule,
+            activities_module_1.ActivitiesModule,
+            reports_module_1.ReportsModule,
         ],
     })
 ], AppModule);

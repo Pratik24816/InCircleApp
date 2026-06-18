@@ -1,13 +1,29 @@
 import { Platform } from 'react-native';
 
 /**
- * Backend connection (development)
- * ---------------------------------
- * Physical phone (USB / same Wi‑Fi): set to your laptop LAN IP, e.g. '192.168.1.42'
- * Android emulator: use '10.0.2.2'
- * iOS simulator: use 'localhost'
+ * ========== EDIT BEFORE TESTING ==========
+ * 1. Google Web Client ID (optional if using Dev Login)
+ * 2. API host: copy api.config.local.example.ts → api.config.local.ts
+ *    and set your PC Wi-Fi IP (physical phone) OR use adb reverse with 127.0.0.1
  */
-export const DEV_API_HOST = '192.168.1.42';
+export const GOOGLE_WEB_CLIENT_ID =
+  'REPLACE_WITH_WEB_CLIENT_ID.apps.googleusercontent.com';
+
+let localDevHost: string | undefined;
+try {
+  // Per-machine override (gitignored) — api.config.local.ts
+  localDevHost = require('./api.config.local').DEV_API_HOST as string;
+} catch {
+  localDevHost = undefined;
+}
+
+/**
+ * Physical Android phone: your PC LAN IP in api.config.local.ts
+ * USB + adb reverse: 127.0.0.1 (run adb reverse tcp:3000 tcp:3000)
+ * Android emulator: 10.0.2.2
+ */
+export const DEV_API_HOST =
+  localDevHost ?? (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
 
 export const API_PORT = 3000;
 
@@ -15,19 +31,13 @@ export const API_BASE_URL = __DEV__
   ? `http://${DEV_API_HOST}:${API_PORT}`
   : 'https://api.incircle.app';
 
-/**
- * Web client ID from Google Cloud Console (OAuth 2.0).
- * Must match GOOGLE_CLIENT_ID_WEB in backend/.env
- */
-export const GOOGLE_WEB_CLIENT_ID =
-  'your_google_client_id_web.apps.googleusercontent.com';
-
 export const isGoogleSignInConfigured = (): boolean =>
-  !GOOGLE_WEB_CLIENT_ID.includes('your_google_client_id');
+  GOOGLE_WEB_CLIENT_ID.includes('.apps.googleusercontent.com') &&
+  !GOOGLE_WEB_CLIENT_ID.startsWith('REPLACE_WITH');
 
 export const apiConfigHint = (): string => {
-  if (Platform.OS === 'android') {
-    return `API: ${API_BASE_URL} — set DEV_API_HOST in src/config/api.config.ts to your PC IP for a physical device.`;
+  if (DEV_API_HOST === '127.0.0.1') {
+    return `API: ${API_BASE_URL} — run: adb reverse tcp:3000 tcp:3000`;
   }
-  return `API: ${API_BASE_URL}`;
+  return `API: ${API_BASE_URL} — phone & PC on same Wi-Fi`;
 };

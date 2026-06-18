@@ -11,6 +11,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GOOGLE_WEB_CLIENT_ID, isGoogleSignInConfigured } from '../config/api.config';
 import {
   fetchCurrentUser,
+  loginWithDev,
   loginWithGoogle,
   logoutFromServer,
   restoreSession,
@@ -24,6 +25,7 @@ type AuthContextValue = {
   authLoading: boolean;
   authReady: boolean;
   signInWithGoogle: () => Promise<AuthUser>;
+  signInWithDev: (email?: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<AuthUser | null>;
   saveProfile: (payload: UpdateProfilePayload) => Promise<AuthUser>;
@@ -36,6 +38,13 @@ function syncUserToStore(user: AuthUser | null) {
   if (user) {
     store.setAuthenticated(true);
     store.setProfileComplete(user.isProfileCompleted);
+    if (user.interestIds?.length) {
+      store.setSelectedInterests(user.interestIds);
+      store.setInterestsComplete(true);
+    }
+    if (user.city) {
+      store.setSelectedCity(user.city);
+    }
   } else {
     store.setAuthenticated(false);
     store.setProfileComplete(false);
@@ -89,6 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signInWithDev = useCallback(async (email?: string) => {
+    setAuthLoading(true);
+    try {
+      const loggedInUser = await loginWithDev(email);
+      setUser(loggedInUser);
+      syncUserToStore(loggedInUser);
+      return loggedInUser;
+    } finally {
+      setAuthLoading(false);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     setAuthLoading(true);
     try {
@@ -126,11 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authLoading,
       authReady,
       signInWithGoogle,
+      signInWithDev,
       signOut,
       refreshUser,
       saveProfile,
     }),
-    [user, authLoading, authReady, signInWithGoogle, signOut, refreshUser, saveProfile],
+    [user, authLoading, authReady, signInWithGoogle, signInWithDev, signOut, refreshUser, saveProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -89,6 +89,9 @@ let UsersService = class UsersService {
         if (updateProfileDto.bio !== undefined) {
             updateData.bio = updateProfileDto.bio;
         }
+        if (updateProfileDto.city !== undefined) {
+            updateData.city = updateProfileDto.city;
+        }
         if (updateProfileDto.username !== undefined) {
             const existingUser = await this.userRepository.findOne({
                 where: { username: updateProfileDto.username },

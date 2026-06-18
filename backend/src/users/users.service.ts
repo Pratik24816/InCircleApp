@@ -54,6 +54,10 @@ export class UsersService {
       updateData.bio = updateProfileDto.bio;
     }
 
+    if (updateProfileDto.city !== undefined) {
+      updateData.city = updateProfileDto.city;
+    }
+
     if (updateProfileDto.username !== undefined) {
       // If updating username, check for uniqueness
       const existingUser = await this.userRepository.findOne({

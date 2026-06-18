@@ -18,6 +18,13 @@ export declare class AuthService {
         accessToken: string;
         refreshToken: string;
     }>;
+    devLogin(email: string): Promise<{
+        tokens: {
+            accessToken: string;
+            refreshToken: string;
+        };
+        user: User;
+    }>;
     signInWithGoogle(idToken: string): Promise<{
         tokens: {
             accessToken: string;

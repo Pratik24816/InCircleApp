@@ -14,21 +14,24 @@ export class User {
   id: string;
 
   @Index({ unique: true })
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   email: string;
 
   @Index({ unique: true })
-  @Column({ unique: true, nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   username: string | null;
 
-  @Column()
+  @Column({ type: 'varchar' })
   fullName: string;
 
   @Column({ nullable: true, type: 'text' })
   bio: string | null;
 
+  @Column({ type: 'varchar', default: 'Ahmedabad' })
+  city: string;
+
   @Index({ unique: true })
-  @Column()
+  @Column({ type: 'varchar' })
   googleId: string;
 
   @Column({ nullable: true, type: 'text' })

@@ -1,6 +1,7 @@
 import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { DevLoginDto } from './dto/dev-login.dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GetUser } from '../common/decorators/get-user.decorator';
@@ -15,6 +16,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
     return this.authService.signInWithGoogle(googleLoginDto.token);
+  }
+
+  @Public()
+  @Post('dev')
+  @HttpCode(HttpStatus.OK)
+  async devLogin(@Body() dto: DevLoginDto) {
+    return this.authService.devLogin(dto.email);
   }
 
   @Public()

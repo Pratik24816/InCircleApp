@@ -68,6 +68,18 @@ let AuthService = class AuthService {
         ]);
         return { accessToken, refreshToken };
     }
+    async devLogin(email) {
+        if (process.env.ENABLE_DEV_AUTH !== 'true') {
+            throw new common_1.ForbiddenException('Dev login is disabled. Set ENABLE_DEV_AUTH=true in backend/.env');
+        }
+        const user = await this.usersService.findByEmail(email);
+        if (!user) {
+            throw new common_1.UnauthorizedException(`No seed user found for ${email}. Run: npm run seed`);
+        }
+        const tokens = await this.generateTokens(user.id, user.email);
+        await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
+        return { tokens, user };
+    }
     async signInWithGoogle(idToken) {
         const googleUser = await this.verifyGoogleToken(idToken);
         let user = await this.usersService.findByGoogleId(googleUser.googleId);

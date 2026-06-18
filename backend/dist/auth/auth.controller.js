@@ -16,6 +16,7 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const google_login_dto_1 = require("./dto/google-login.dto");
+const dev_login_dto_1 = require("./dto/dev-login.dto");
 const jwt_refresh_guard_1 = require("./guards/jwt-refresh.guard");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const get_user_decorator_1 = require("../common/decorators/get-user.decorator");
@@ -27,6 +28,9 @@ let AuthController = class AuthController {
     }
     async googleLogin(googleLoginDto) {
         return this.authService.signInWithGoogle(googleLoginDto.token);
+    }
+    async devLogin(dto) {
+        return this.authService.devLogin(dto.email);
     }
     async refresh(user) {
         return this.authService.refreshTokens(user.id, user.refreshToken);
@@ -45,6 +49,15 @@ __decorate([
     __metadata("design:paramtypes", [google_login_dto_1.GoogleLoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleLogin", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('dev'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [dev_login_dto_1.DevLoginDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "devLogin", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.UseGuards)(jwt_refresh_guard_1.JwtRefreshGuard),

@@ -18,4 +18,9 @@ export class UpdateProfileDto {
   @IsString()
   @Length(0, 160, { message: 'Bio cannot exceed 160 characters' })
   bio?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 80)
+  city?: string;
 }
