@@ -15,6 +15,7 @@ class UpdateProfileDto {
     username;
     fullName;
     bio;
+    city;
 }
 exports.UpdateProfileDto = UpdateProfileDto;
 __decorate([
@@ -38,4 +39,10 @@ __decorate([
     (0, class_validator_1.Length)(0, 160, { message: 'Bio cannot exceed 160 characters' }),
     __metadata("design:type", String)
 ], UpdateProfileDto.prototype, "bio", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Length)(1, 80),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "city", void 0);
 //# sourceMappingURL=update-profile.dto.js.map

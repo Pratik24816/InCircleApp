@@ -18,6 +18,7 @@ let User = class User {
     username;
     fullName;
     bio;
+    city;
     googleId;
     googlePhotoUrl;
     customPhotoUrl;
@@ -36,16 +37,16 @@ __decorate([
 ], User.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Index)({ unique: true }),
-    (0, typeorm_1.Column)({ unique: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', unique: true }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
     (0, typeorm_1.Index)({ unique: true }),
-    (0, typeorm_1.Column)({ unique: true, nullable: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', unique: true, nullable: true }),
     __metadata("design:type", Object)
 ], User.prototype, "username", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
 ], User.prototype, "fullName", void 0);
 __decorate([
@@ -53,8 +54,12 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "bio", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', default: 'Ahmedabad' }),
+    __metadata("design:type", String)
+], User.prototype, "city", void 0);
+__decorate([
     (0, typeorm_1.Index)({ unique: true }),
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
 ], User.prototype, "googleId", void 0);
 __decorate([

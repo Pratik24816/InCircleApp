@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,8 +14,10 @@ import { ActivityCard } from '../components/ActivityCard';
 import { AppCard } from '../components/AppCard';
 import { CategoryChip } from '../components/CategoryChip';
 import { ScreenBg } from '../components/ScreenBg';
-import { MOCK_ACTIVITIES, MOCK_CATEGORIES } from '../data/mock';
+import { fetchActivities, fetchFeaturedActivity } from '../services/activities.service';
+import { fetchCategories } from '../services/catalog.service';
 import { useAppStore } from '../store/useAppStore';
+import type { Activity, Category } from '../types/auth';
 import { colors, spacing, typography } from '../theme/tokens';
 import type { MainStackParamList } from '../navigation/types';
 
@@ -25,26 +28,42 @@ export function HomeFeedScreen() {
   const city = useAppStore(s => s.selectedCity);
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [featured, setFeatured] = useState<Activity | null>(null);
+  const [list, setList] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const featured = useMemo(
-    () => MOCK_ACTIVITIES.find(a => a.featured) ?? MOCK_ACTIVITIES[0],
-    [],
+  const loadFeed = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cats, feat, items] = await Promise.all([
+        fetchCategories(),
+        fetchFeaturedActivity(city),
+        fetchActivities({ city, categoryId: cat ?? undefined, q: q.trim() || undefined, excludeFeatured: true }),
+      ]);
+      setCategories(cats);
+      setFeatured(feat);
+      setList(items);
+    } catch {
+      setFeatured(null);
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [city, cat, q]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFeed();
+    }, [loadFeed]),
   );
-  const list = useMemo(() => {
-    let xs = MOCK_ACTIVITIES.filter(a => a.id !== featured.id);
-    if (cat) {
-      xs = xs.filter(a => a.categoryId === cat);
-    }
-    if (q.trim()) {
-      const t = q.toLowerCase();
-      xs = xs.filter(
-        a =>
-          a.title.toLowerCase().includes(t) ||
-          a.locationName.toLowerCase().includes(t),
-      );
-    }
-    return xs;
-  }, [cat, q, featured.id]);
+
+  useEffect(() => {
+    const t = setTimeout(loadFeed, 400);
+    return () => clearTimeout(t);
+  }, [q, cat, loadFeed]);
+
+  const nearby = useMemo(() => list, [list]);
 
   return (
     <ScreenBg>
@@ -69,12 +88,8 @@ export function HomeFeedScreen() {
           style={styles.search}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-          <CategoryChip
-            label="All"
-            selected={cat === null}
-            onPress={() => setCat(null)}
-          />
-          {MOCK_CATEGORIES.map(c => (
+          <CategoryChip label="All" selected={cat === null} onPress={() => setCat(null)} />
+          {categories.map(c => (
             <CategoryChip
               key={c.id}
               label={`${c.icon} ${c.name}`}
@@ -84,28 +99,46 @@ export function HomeFeedScreen() {
           ))}
         </ScrollView>
 
-        <Text style={styles.section}>Featured near you</Text>
-        <ActivityCard
-          activity={featured}
-          onPress={() => navigation.navigate('ActivityDetails', { id: featured.id })}
-        />
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.lg }} />
+        ) : (
+          <>
+            {featured ? (
+              <>
+                <Text style={styles.section}>Featured near you</Text>
+                <ActivityCard
+                  activity={featured}
+                  onPress={() => navigation.navigate('ActivityDetails', { id: featured.id })}
+                />
+              </>
+            ) : null}
 
-        <Text style={styles.section}>Nearby</Text>
-        {list.map(a => (
-          <ActivityCard
-            key={a.id}
-            activity={a}
-            onPress={() => navigation.navigate('ActivityDetails', { id: a.id })}
-          />
-        ))}
+            <Text style={styles.section}>Nearby</Text>
+            {nearby.length === 0 ? (
+              <AppCard>
+                <Text style={styles.recBody}>
+                  No activities in {city} yet. Tap + to create the first one!
+                </Text>
+              </AppCard>
+            ) : (
+              nearby.map(a => (
+                <ActivityCard
+                  key={a.id}
+                  activity={a}
+                  onPress={() => navigation.navigate('ActivityDetails', { id: a.id })}
+                />
+              ))
+            )}
 
-        <Text style={styles.section}>Recommended</Text>
-        <AppCard>
-          <Text style={styles.recTitle}>Because you like walking & chai</Text>
-          <Text style={styles.recBody}>
-            More picks will load from the recommendation engine — TODO API.
-          </Text>
-        </AppCard>
+            <Text style={styles.section}>Recommended</Text>
+            <AppCard>
+              <Text style={styles.recTitle}>Based on your interests</Text>
+              <Text style={styles.recBody}>
+                Create or join activities — recommendations improve as you use InCircle.
+              </Text>
+            </AppCard>
+          </>
+        )}
       </ScrollView>
     </ScreenBg>
   );

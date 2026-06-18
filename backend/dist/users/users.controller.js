@@ -22,13 +22,17 @@ const get_user_decorator_1 = require("../common/decorators/get-user.decorator");
 const user_entity_1 = require("./entities/user.entity");
 const users_service_1 = require("./users.service");
 const update_profile_dto_1 = require("./dto/update-profile.dto");
+const catalog_service_1 = require("../catalog/catalog.service");
 let UsersController = class UsersController {
     usersService;
-    constructor(usersService) {
+    catalogService;
+    constructor(usersService, catalogService) {
         this.usersService = usersService;
+        this.catalogService = catalogService;
     }
-    getMe(user) {
-        return user;
+    async getMe(user) {
+        const interestIds = await this.catalogService.getUserInterestIds(user.id);
+        return { ...user, interestIds };
     }
     async updateProfile(userId, updateProfileDto) {
         return this.usersService.updateProfile(userId, updateProfileDto);
@@ -55,7 +59,7 @@ __decorate([
     __param(0, (0, get_user_decorator_1.GetUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [user_entity_1.User]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Patch)('profile'),
@@ -103,6 +107,7 @@ __decorate([
 exports.UsersController = UsersController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('users'),
-    __metadata("design:paramtypes", [users_service_1.UsersService])
+    __metadata("design:paramtypes", [users_service_1.UsersService,
+        catalog_service_1.CatalogService])
 ], UsersController);
 //# sourceMappingURL=users.controller.js.map

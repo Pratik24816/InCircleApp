@@ -4,6 +4,7 @@ export declare class User {
     username: string | null;
     fullName: string;
     bio: string | null;
+    city: string;
     googleId: string;
     googlePhotoUrl: string | null;
     customPhotoUrl: string | null;

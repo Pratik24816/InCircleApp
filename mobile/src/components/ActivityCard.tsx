@@ -1,19 +1,21 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import type { MockActivity } from '../types/models';
+import type { Activity } from '../types/auth';
 import { colors, radii, spacing, typography } from '../theme/tokens';
-import { getCategoryById } from '../data/mock';
 import { StatusBadge } from './StatusBadge';
 
 type Props = {
-  activity: MockActivity;
+  activity: Activity;
   onPress: () => void;
   onPressIn?: () => void;
 };
 
 export function ActivityCard({ activity, onPress, onPressIn }: Props) {
-  const cat = getCategoryById(activity.categoryId);
+  const catIcon = activity.category?.icon ?? '✨';
+  const catName = activity.category?.name ?? 'Activity';
+  const distance = activity.distanceKm ?? 0;
+
   return (
     <Pressable
       onPress={onPress}
@@ -23,16 +25,14 @@ export function ActivityCard({ activity, onPress, onPressIn }: Props) {
         colors={['rgba(77,181,255,0.12)', 'rgba(140,255,79,0.06)', colors.surface]}
         style={styles.card}>
         <View style={styles.cover}>
-          <Text style={styles.coverEmoji}>
-            {cat?.icon ?? '✨'} {activity.coverPlaceholder}
-          </Text>
+          <Text style={styles.coverEmoji}>{catIcon} Activity</Text>
           <View style={styles.badgeWrap}>
             <StatusBadge status={activity.status} />
           </View>
         </View>
         <View style={styles.row}>
-          <Text style={styles.cat}>{cat?.name ?? 'Activity'}</Text>
-          <Text style={styles.dist}>{activity.distanceKm.toFixed(1)} km</Text>
+          <Text style={styles.cat}>{catName}</Text>
+          <Text style={styles.dist}>{distance.toFixed(1)} km</Text>
         </View>
         <Text style={styles.title} numberOfLines={2}>
           {activity.title}

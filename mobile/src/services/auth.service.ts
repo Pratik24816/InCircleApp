@@ -21,7 +21,14 @@ export async function loginWithGoogle(): Promise<AuthUser> {
   });
 
   await TokenService.saveTokens(data.tokens.accessToken, data.tokens.refreshToken);
-  return data.user;
+  return fetchCurrentUser();
+}
+
+/** Local dev login — requires backend ENABLE_DEV_AUTH=true and npm run seed */
+export async function loginWithDev(email = 'you@incircle.app'): Promise<AuthUser> {
+  const { data } = await apiClient.post<GoogleLoginResponse>('/auth/dev', { email });
+  await TokenService.saveTokens(data.tokens.accessToken, data.tokens.refreshToken);
+  return fetchCurrentUser();
 }
 
 export async function restoreSession(): Promise<AuthUser | null> {
@@ -45,8 +52,8 @@ export async function fetchCurrentUser(): Promise<AuthUser> {
 }
 
 export async function updateProfile(payload: UpdateProfilePayload): Promise<AuthUser> {
-  const { data } = await apiClient.patch<AuthUser>('/users/profile', payload);
-  return data;
+  await apiClient.patch<AuthUser>('/users/profile', payload);
+  return fetchCurrentUser();
 }
 
 export async function logoutFromServer(): Promise<void> {
