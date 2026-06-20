@@ -12,26 +12,27 @@ const LABEL: Record<ActivityStatus, string> = {
   closed: 'Closed',
 };
 
-export function StatusBadge({ status }: { status: ActivityStatus }) {
+export function StatusBadge({ status }: { status: ActivityStatus | string }) {
+  const key = (status in LABEL ? status : 'open') as ActivityStatus;
   const tone =
-    status === 'full' || status === 'cancelled'
+    key === 'full' || key === 'cancelled'
       ? styles.bad
-      : status === 'almost_full'
+      : key === 'almost_full'
         ? styles.warn
-        : status === 'done' || status === 'closed'
+        : key === 'done' || key === 'closed'
           ? styles.neutral
           : styles.good;
   const txt =
-    status === 'full' || status === 'cancelled'
+    key === 'full' || key === 'cancelled'
       ? styles.txtBad
-      : status === 'almost_full'
+      : key === 'almost_full'
         ? styles.txtWarn
-        : status === 'done' || status === 'closed'
+        : key === 'done' || key === 'closed'
           ? styles.txtMuted
           : styles.txtGood;
   return (
     <View style={[styles.wrap, tone]}>
-      <Text style={[styles.txt, txt]}>{LABEL[status]}</Text>
+      <Text style={[styles.txt, txt]}>{LABEL[key]}</Text>
     </View>
   );
 }

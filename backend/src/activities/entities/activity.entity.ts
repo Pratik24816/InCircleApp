@@ -81,6 +81,9 @@ export class Activity {
   @Column({ type: 'simple-array', default: '' })
   tags: string[];
 
+  @Column({ type: 'simple-array', default: '' })
+  vibeTags: string[];
+
   @CreateDateColumn()
   createdAt: Date;
 

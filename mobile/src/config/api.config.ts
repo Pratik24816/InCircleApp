@@ -18,12 +18,12 @@ try {
 }
 
 /**
- * Physical Android phone: your PC LAN IP in api.config.local.ts
- * USB + adb reverse: 127.0.0.1 (run adb reverse tcp:3000 tcp:3000)
+ * Android physical device (USB): 127.0.0.1 + npm run connect:device
  * Android emulator: 10.0.2.2
+ * Wi-Fi only: set DEV_API_HOST in api.config.local.ts to PC IP (hostname -I)
  */
 export const DEV_API_HOST =
-  localDevHost ?? (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
+  localDevHost ?? (Platform.OS === 'android' ? '127.0.0.1' : 'localhost');
 
 export const API_PORT = 3000;
 

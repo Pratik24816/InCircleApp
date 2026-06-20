@@ -4,12 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Activity, ActivityStatus } from './entities/activity.entity';
 import { ActivityParticipant } from './entities/activity-participant.entity';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { User } from '../users/entities/user.entity';
 import { Category } from '../catalog/entities/category.entity';
+import { resolveActivityCoverUrl } from '../database/activity-cover-urls';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIFICATION_TYPES } from '../notifications/notification.types';
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -23,10 +26,31 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+const TONIGHT_DEMO_IDS = [
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd01',
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd02',
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd03',
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd04',
+] as const;
+
+const TONIGHT_DEMO_HOURS: Record<string, number> = {
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd01': 18,
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd02': 20,
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd03': 19,
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd04': 21,
+};
+
+export type ActivityParticipantPreview = {
+  id: string;
+  fullName: string;
+  profilePhoto: string;
+};
+
 export type ActivityResponse = Activity & {
   distanceKm?: number;
   category?: Category;
   creator?: Pick<User, 'id' | 'fullName' | 'username' | 'profilePhoto'>;
+  participants?: ActivityParticipantPreview[];
 };
 
 @Injectable()
@@ -35,17 +59,94 @@ export class ActivitiesService {
     @InjectRepository(Activity) private readonly activityRepo: Repository<Activity>,
     @InjectRepository(ActivityParticipant)
     private readonly participantRepo: Repository<ActivityParticipant>,
+    @InjectRepository(Category) private readonly categoryRepo: Repository<Category>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
+  private withResolvedCover(activity: Activity): Activity {
+    const coverUrl = resolveActivityCoverUrl({
+      id: activity.id,
+      coverUrl: activity.coverUrl,
+      title: activity.title,
+      tags: activity.tags,
+      categorySlug: activity.category?.slug ?? null,
+    });
+    return { ...activity, coverUrl };
+  }
+
   private mapActivity(activity: Activity, refLat?: number, refLng?: number): ActivityResponse {
-    const result = { ...activity } as ActivityResponse;
+    const normalized = this.normalizeTonightDemo(activity);
+    const withCover = this.withResolvedCover(normalized);
+    const result = { ...withCover } as ActivityResponse;
     if (refLat != null && refLng != null) {
-      result.distanceKm = haversineKm(refLat, refLng, activity.latitude, activity.longitude);
+      result.distanceKm = haversineKm(refLat, refLng, normalized.latitude, normalized.longitude);
     }
     return result;
   }
 
-  private async refreshActivityStatus(activity: Activity): Promise<Activity> {
+  private normalizeTonightDemo(activity: Activity): Activity {
+    const hour = TONIGHT_DEMO_HOURS[activity.id];
+    if (hour == null) {
+      return activity;
+    }
+    const start = new Date();
+    start.setHours(hour, 0, 0, 0);
+    return { ...activity, startDatetime: start };
+  }
+
+  private getTonightWindow() {
+    const now = new Date();
+    const eveningStart = new Date(now);
+    eveningStart.setHours(17, 0, 0, 0);
+    const tonightEnd = new Date(now);
+    tonightEnd.setHours(23, 59, 59, 999);
+    const from = now.getTime() > eveningStart.getTime() ? now : eveningStart;
+    return { from, to: tonightEnd };
+  }
+
+  private mapParticipantUser(user: User): ActivityParticipantPreview {
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      profilePhoto: user.customPhotoUrl || user.googlePhotoUrl || '',
+    };
+  }
+
+  private async attachParticipants(activities: ActivityResponse[]): Promise<ActivityResponse[]> {
+    if (!activities.length) {
+      return activities;
+    }
+    const ids = activities.map(a => a.id);
+    const rows = await this.participantRepo.find({
+      where: { activityId: In(ids), status: 'joined' },
+      relations: { user: true },
+      order: { joinedAt: 'ASC' },
+    });
+
+    const byActivity = new Map<string, ActivityParticipantPreview[]>();
+    for (const row of rows) {
+      if (!row.user) {
+        continue;
+      }
+      const list = byActivity.get(row.activityId) ?? [];
+      if (list.length < 4) {
+        list.push(this.mapParticipantUser(row.user));
+      }
+      byActivity.set(row.activityId, list);
+    }
+
+    return activities.map(a => ({
+      ...a,
+      participants: byActivity.get(a.id) ?? [],
+    }));
+  }
+
+  private async refreshActivityStatus(
+    activity: Activity,
+  ): Promise<{ previousStatus: ActivityStatus; activity: Activity }> {
+    const previousStatus = activity.status;
+
     if (activity.groupSize != null && activity.joinedCount >= activity.groupSize) {
       activity.status = 'full';
     } else if (
@@ -57,7 +158,82 @@ export class ActivitiesService {
     } else if (activity.status === 'full' || activity.status === 'almost_full') {
       activity.status = 'open';
     }
-    return this.activityRepo.save(activity);
+
+    const saved = await this.activityRepo.save(activity);
+    return { previousStatus, activity: saved };
+  }
+
+  private firstName(fullName: string): string {
+    return fullName.trim().split(/\s+/)[0] || 'Someone';
+  }
+
+  private async getParticipantUserIds(
+    activityId: string,
+    statuses: Array<'joined' | 'maybe'> = ['joined', 'maybe'],
+  ): Promise<string[]> {
+    const rows = await this.participantRepo.find({
+      where: { activityId, status: In(statuses) },
+    });
+    return rows.map(r => r.userId);
+  }
+
+  private async notifyStatusChange(
+    activity: Activity,
+    previousStatus: ActivityStatus,
+    excludeUserId?: string,
+  ): Promise<void> {
+    if (previousStatus === activity.status) {
+      return;
+    }
+
+    if (activity.status === 'almost_full') {
+      const userIds = await this.getParticipantUserIds(activity.id, ['joined']);
+      const targets = new Set([activity.creatorId, ...userIds]);
+      if (excludeUserId) {
+        targets.delete(excludeUserId);
+      }
+
+      await this.notificationsService.notifyManyEvents(
+        [...targets].map(userId => ({
+          userId,
+          type: NOTIFICATION_TYPES.ACTIVITY_ALMOST_FULL,
+          activityId: activity.id,
+          dedupeKey: `almost_full:${activity.id}:${userId}`,
+          copyVars: {
+            activityTitle: activity.title,
+            locationName: activity.locationName,
+            city: activity.city,
+            spotsLeft:
+              activity.groupSize != null
+                ? Math.max(1, activity.groupSize - activity.joinedCount)
+                : 1,
+          },
+        })),
+      );
+      return;
+    }
+
+    if (activity.status === 'full') {
+      const userIds = await this.getParticipantUserIds(activity.id, ['joined', 'maybe']);
+      const targets = new Set([activity.creatorId, ...userIds]);
+      if (excludeUserId) {
+        targets.delete(excludeUserId);
+      }
+
+      await this.notificationsService.notifyManyEvents(
+        [...targets].map(userId => ({
+          userId,
+          type: NOTIFICATION_TYPES.ACTIVITY_FULL,
+          activityId: activity.id,
+          dedupeKey: `full:${activity.id}:${userId}`,
+          copyVars: {
+            activityTitle: activity.title,
+            locationName: activity.locationName,
+            city: activity.city,
+          },
+        })),
+      );
+    }
   }
 
   async findAll(query: {
@@ -92,7 +268,8 @@ export class ActivitiesService {
 
     qb.orderBy('a.startDatetime', 'ASC');
     const items = await qb.getMany();
-    return items.map(a => this.mapActivity(a, query.lat, query.lng));
+    const mapped = items.map(a => this.mapActivity(a, query.lat, query.lng));
+    return this.attachParticipants(mapped);
   }
 
   async findFeatured(city?: string, lat?: number, lng?: number) {
@@ -108,7 +285,37 @@ export class ActivitiesService {
     }
     qb.orderBy('a.startDatetime', 'ASC').limit(1);
     const activity = await qb.getOne();
-    return activity ? this.mapActivity(activity, lat, lng) : null;
+    if (!activity) {
+      return null;
+    }
+    const [withParticipants] = await this.attachParticipants([
+      this.mapActivity(activity, lat, lng),
+    ]);
+    return withParticipants;
+  }
+
+  async findTonight(city?: string, lat?: number, lng?: number) {
+    const { from, to } = this.getTonightWindow();
+
+    const qb = this.activityRepo
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.category', 'category')
+      .leftJoinAndSelect('a.creator', 'creator')
+      .where('a.approvalStatus = :approved', { approved: 'approved' })
+      .andWhere('a.status NOT IN (:...closed)', { closed: ['done', 'cancelled', 'closed'] })
+      .andWhere(
+        '(a.id IN (:...demoIds) OR (a.startDatetime BETWEEN :from AND :to AND DATE(a.startDatetime) = CURRENT_DATE))',
+        { demoIds: [...TONIGHT_DEMO_IDS], from, to },
+      );
+
+    if (city) {
+      qb.andWhere('a.city = :city', { city });
+    }
+
+    qb.orderBy('a.startDatetime', 'ASC');
+    const items = await qb.getMany();
+    const mapped = items.map(a => this.mapActivity(a, lat, lng));
+    return this.attachParticipants(mapped);
   }
 
   async findById(id: string, lat?: number, lng?: number) {
@@ -119,10 +326,19 @@ export class ActivitiesService {
     if (!activity) {
       throw new NotFoundException('Activity not found');
     }
-    return this.mapActivity(activity, lat, lng);
+    const [withParticipants] = await this.attachParticipants([this.mapActivity(activity, lat, lng)]);
+    return withParticipants;
   }
 
   async create(creatorId: string, dto: CreateActivityDto) {
+    const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+    const coverUrl = resolveActivityCoverUrl({
+      coverUrl: dto.coverUrl ?? null,
+      title: dto.title,
+      tags: dto.tags ?? [],
+      categorySlug: category?.slug ?? null,
+    });
+
     const activity = this.activityRepo.create({
       creatorId,
       categoryId: dto.categoryId,
@@ -137,7 +353,8 @@ export class ActivitiesService {
       groupType: dto.groupType,
       groupSize: dto.groupSize ?? null,
       tags: dto.tags ?? [],
-      coverUrl: dto.coverUrl ?? null,
+      vibeTags: dto.vibeTags ?? [],
+      coverUrl,
       approvalStatus: 'approved',
       status: 'open',
       joinedCount: 1,
@@ -150,6 +367,19 @@ export class ActivitiesService {
         status: 'joined',
       }),
     );
+
+    await this.notificationsService.notifyEvent({
+      userId: creatorId,
+      type: NOTIFICATION_TYPES.ACTIVITY_PUBLISHED,
+      activityId: saved.id,
+      dedupeKey: `published:${saved.id}`,
+      copyVars: {
+        activityTitle: dto.title,
+        locationName: dto.locationName,
+        city: dto.city,
+      },
+    });
+
     return this.findById(saved.id);
   }
 
@@ -185,7 +415,43 @@ export class ActivitiesService {
       await this.activityRepo.save(activity);
     }
 
-    await this.refreshActivityStatus(activity);
+    const { previousStatus, activity: updated } = await this.refreshActivityStatus(activity);
+
+    if (status === 'joined' && !wasJoined) {
+      const joiner = await this.userRepo.findOne({ where: { id: userId } });
+      const joinerName = this.firstName(joiner?.fullName ?? 'Someone');
+
+      if (updated.creatorId !== userId) {
+        await this.notificationsService.notifyEvent({
+          userId: updated.creatorId,
+          type: NOTIFICATION_TYPES.ACTIVITY_NEW_JOINER,
+          activityId: updated.id,
+          metadata: { joinerId: userId },
+          dedupeKey: `new_joiner:${updated.id}:${userId}`,
+          copyVars: {
+            activityTitle: updated.title,
+            actorName: joinerName,
+            locationName: updated.locationName,
+            city: updated.city,
+          },
+        });
+      }
+
+      await this.notificationsService.notifyEvent({
+        userId,
+        type: NOTIFICATION_TYPES.RSVP_CONFIRMED,
+        activityId: updated.id,
+        dedupeKey: `rsvp:${updated.id}:${userId}`,
+        copyVars: {
+          activityTitle: updated.title,
+          locationName: updated.locationName,
+          city: updated.city,
+        },
+      });
+    }
+
+    await this.notifyStatusChange(updated, previousStatus, userId);
+
     return this.findById(activityId);
   }
 
@@ -196,7 +462,7 @@ export class ActivitiesService {
         relations: { category: true, creator: true },
         order: { startDatetime: 'DESC' },
       });
-      return items.map(a => this.mapActivity(a));
+      return this.attachParticipants(items.map(a => this.mapActivity(a)));
     }
 
     const participants = await this.participantRepo.find({
@@ -212,6 +478,6 @@ export class ActivitiesService {
       activities = activities.filter(a => a.status !== 'done' && a.creatorId !== userId);
     }
 
-    return activities.map(a => this.mapActivity(a));
+    return this.attachParticipants(activities.map(a => this.mapActivity(a)));
   }
 }
