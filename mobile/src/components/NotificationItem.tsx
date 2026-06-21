@@ -1,13 +1,13 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { MockNotification } from '../types/models';
+import type { AppNotification } from '../services/notifications.service';
 import { colors, spacing, typography } from '../theme/tokens';
 
 export function NotificationItem({
   item,
   onPress,
 }: {
-  item: MockNotification;
+  item: AppNotification;
   onPress: () => void;
 }) {
   return (

@@ -20,6 +20,7 @@ const auth_module_1 = require("./auth/auth.module");
 const catalog_module_1 = require("./catalog/catalog.module");
 const activities_module_1 = require("./activities/activities.module");
 const reports_module_1 = require("./reports/reports.module");
+const notifications_module_1 = require("./notifications/notifications.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -50,6 +51,7 @@ exports.AppModule = AppModule = __decorate([
             catalog_module_1.CatalogModule,
             activities_module_1.ActivitiesModule,
             reports_module_1.ReportsModule,
+            notifications_module_1.NotificationsModule,
         ],
     })
 ], AppModule);

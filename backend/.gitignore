@@ -1,1 +1,40 @@
+# Dependencies
 node_modules/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+.git/credentials
+
+# Build outputs
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Mobile / native
+mobile/src/config/api.config.local.ts
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/ios/Pods/
+mobile/ios/build/
+*.apk
+*.aab
+
+# Backend uploads (local dev)
+backend/uploads/
+
+# Admain
+admin/dist/
