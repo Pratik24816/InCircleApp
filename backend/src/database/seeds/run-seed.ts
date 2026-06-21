@@ -6,6 +6,7 @@ import { UserInterest } from '../../catalog/entities/user-interest.entity';
 import { Activity } from '../../activities/entities/activity.entity';
 import { ActivityParticipant } from '../../activities/entities/activity-participant.entity';
 import { Report } from '../../reports/entities/report.entity';
+import { coverUrlForActivityId } from '../activity-cover-urls';
 
 /** Fixed UUIDs so seed is idempotent and dev-login emails are stable */
 const IDS = {
@@ -147,6 +148,8 @@ async function seed() {
       approvalStatus: 'approved',
       featured: true,
       tags: ['walk', 'morning', 'fitness'],
+      vibeTags: ['trending', 'chill', 'Coffee after walk', 'New people welcome'],
+      coverUrl: coverUrlForActivityId(IDS.activities.walk),
     }),
     activityRepo.create({
       id: IDS.activities.cricket,
@@ -166,6 +169,8 @@ async function seed() {
       approvalStatus: 'approved',
       featured: false,
       tags: ['cricket', 'sports'],
+      vibeTags: ['high_energy', 'Competitive but friendly', 'Almost full'],
+      coverUrl: coverUrlForActivityId(IDS.activities.cricket),
     }),
     activityRepo.create({
       id: IDS.activities.chai,
@@ -185,6 +190,8 @@ async function seed() {
       approvalStatus: 'approved',
       featured: false,
       tags: ['chai', 'networking'],
+      vibeTags: ['casual', 'new_friends', 'Founders welcome'],
+      coverUrl: coverUrlForActivityId(IDS.activities.chai),
     }),
     activityRepo.create({
       id: IDS.activities.cycling,
@@ -204,6 +211,8 @@ async function seed() {
       approvalStatus: 'approved',
       featured: false,
       tags: ['cycling', 'outdoor'],
+      vibeTags: ['high_energy', 'Breakfast stop included', 'Outdoor loop'],
+      coverUrl: coverUrlForActivityId(IDS.activities.cycling),
     }),
     activityRepo.create({
       id: IDS.activities.study,
@@ -223,6 +232,8 @@ async function seed() {
       approvalStatus: 'approved',
       featured: false,
       tags: ['study', 'focus'],
+      vibeTags: ['chill', 'Quiet focus zone', 'Phones on silent'],
+      coverUrl: coverUrlForActivityId(IDS.activities.study),
     }),
   ]);
 

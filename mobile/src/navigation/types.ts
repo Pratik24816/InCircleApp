@@ -6,7 +6,12 @@ export type RootStackParamList = {
   Otp: { hint?: string } | undefined;
   ProfileSetup: undefined;
   InterestSelection: undefined;
-  Main: undefined;
+  Main:
+    | undefined
+    | {
+        screen?: keyof MainStackParamList;
+        params?: MainStackParamList[keyof MainStackParamList];
+      };
 };
 
 export type MainStackParamList = {

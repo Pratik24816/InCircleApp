@@ -17,6 +17,7 @@ import {
   restoreSession,
   updateProfile as updateProfileApi,
 } from '../services/auth.service';
+import { bootstrapExternalPushForUser, unregisterExternalPushFromBackend } from '../services/externalPush.service';
 import { useAppStore } from '../store/useAppStore';
 import type { AuthUser, UpdateProfilePayload } from '../types/auth';
 
@@ -72,6 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) {
           setUser(restored);
           syncUserToStore(restored);
+          if (restored) {
+            bootstrapExternalPushForUser().catch(() => undefined);
+          }
         }
       } finally {
         if (!cancelled) {
@@ -92,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loggedInUser = await loginWithGoogle();
       setUser(loggedInUser);
       syncUserToStore(loggedInUser);
+      bootstrapExternalPushForUser().catch(() => undefined);
       return loggedInUser;
     } finally {
       setAuthLoading(false);
@@ -104,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loggedInUser = await loginWithDev(email);
       setUser(loggedInUser);
       syncUserToStore(loggedInUser);
+      bootstrapExternalPushForUser().catch(() => undefined);
       return loggedInUser;
     } finally {
       setAuthLoading(false);
@@ -113,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     setAuthLoading(true);
     try {
+      await unregisterExternalPushFromBackend();
       await logoutFromServer();
       setUser(null);
       useAppStore.getState().resetDemo();

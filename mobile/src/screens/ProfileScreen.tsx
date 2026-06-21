@@ -91,7 +91,7 @@ export function ProfileScreen() {
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}>
         <View style={styles.hero}>
-          <Avatar name={user.fullName} size={72} />
+          <Avatar name={user.fullName} uri={user.profilePhoto} size={72} />
           <Text style={styles.name}>{user.fullName}</Text>
           <Text style={styles.user}>@{user.username ?? 'user'}</Text>
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
