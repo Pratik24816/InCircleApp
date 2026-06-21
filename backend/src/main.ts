@@ -1,6 +1,7 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -31,9 +32,27 @@ async function bootstrap() {
   // Enable CORS for frontend integration
   app.enableCors();
 
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('InCircle API')
+    .setDescription('InCircle backend REST API')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
+      'JWT-auth',
+    )
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+    },
+  });
+
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`NestJS application is running on: http://localhost:${port}`);
+  console.log(`Swagger docs: http://localhost:${port}/api/docs`);
   console.log(`LAN access: http://<your-ip>:${port}`);
 }
 bootstrap();

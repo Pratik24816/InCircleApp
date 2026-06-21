@@ -1,5 +1,5 @@
 import { apiClient } from './api.client';
-import type { Activity, CreateActivityPayload } from '../types/auth';
+import type { Activity, CreateActivityPayload, UpdateActivityPayload } from '../types/auth';
 import { DEMO_USER_LOCATION } from '../utils/locationDisplay';
 
 type GeoParams = {
@@ -51,6 +51,16 @@ export async function fetchActivityById(id: string, lat?: number, lng?: number):
 
 export async function createActivity(payload: CreateActivityPayload): Promise<Activity> {
   const { data } = await apiClient.post<Activity>('/activities', payload);
+  return data;
+}
+
+export async function updateActivity(id: string, payload: UpdateActivityPayload): Promise<Activity> {
+  const { data } = await apiClient.patch<Activity>(`/activities/${id}`, payload);
+  return data;
+}
+
+export async function cancelActivity(id: string): Promise<Activity> {
+  const { data } = await apiClient.delete<Activity>(`/activities/${id}`);
   return data;
 }
 

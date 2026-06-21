@@ -94,6 +94,11 @@ export type CreateActivityPayload = {
   longitude?: number;
 };
 
+export type UpdateActivityPayload = Partial<CreateActivityPayload> & {
+  endDatetime?: string | null;
+  vibeTags?: string[];
+};
+
 export type CreateReportPayload = {
   reportType: string;
   reason: string;
