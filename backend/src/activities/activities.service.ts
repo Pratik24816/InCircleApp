@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,7 @@ import { In, Repository } from 'typeorm';
 import { Activity, ActivityStatus } from './entities/activity.entity';
 import { ActivityParticipant } from './entities/activity-participant.entity';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { UpdateActivityDto } from './dto/update-activity.dto';
 import { User } from '../users/entities/user.entity';
 import { Category } from '../catalog/entities/category.entity';
 import { resolveActivityCoverUrl } from '../database/activity-cover-urls';
@@ -330,6 +332,22 @@ export class ActivitiesService {
     return withParticipants;
   }
 
+  private readonly closedStatuses: ActivityStatus[] = ['done', 'cancelled', 'closed'];
+
+  private async getOwnedActivity(id: string, userId: string): Promise<Activity> {
+    const activity = await this.activityRepo.findOne({ where: { id } });
+    if (!activity) {
+      throw new NotFoundException('Activity not found');
+    }
+    if (activity.creatorId !== userId) {
+      throw new ForbiddenException('Only the host can modify this activity');
+    }
+    if (this.closedStatuses.includes(activity.status)) {
+      throw new BadRequestException('This activity can no longer be modified');
+    }
+    return activity;
+  }
+
   async create(creatorId: string, dto: CreateActivityDto) {
     const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
     const coverUrl = resolveActivityCoverUrl({
@@ -381,6 +399,83 @@ export class ActivitiesService {
     });
 
     return this.findById(saved.id);
+  }
+
+  async update(id: string, userId: string, dto: UpdateActivityDto) {
+    const activity = await this.getOwnedActivity(id, userId);
+
+    if (dto.categoryId != null) {
+      const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
+      if (!category) {
+        throw new BadRequestException('Invalid category');
+      }
+      activity.categoryId = dto.categoryId;
+    }
+
+    if (dto.title != null) {
+      activity.title = dto.title;
+    }
+    if (dto.description != null) {
+      activity.description = dto.description;
+    }
+    if (dto.startDatetime != null) {
+      const start = new Date(dto.startDatetime);
+      if (start.getTime() <= Date.now()) {
+        throw new BadRequestException('Start time must be in the future');
+      }
+      activity.startDatetime = start;
+    }
+    if (dto.endDatetime !== undefined) {
+      activity.endDatetime = dto.endDatetime ? new Date(dto.endDatetime) : null;
+    }
+    if (dto.locationName != null) {
+      activity.locationName = dto.locationName;
+    }
+    if (dto.city != null) {
+      activity.city = dto.city;
+    }
+    if (dto.latitude != null) {
+      activity.latitude = dto.latitude;
+    }
+    if (dto.longitude != null) {
+      activity.longitude = dto.longitude;
+    }
+    if (dto.groupType != null) {
+      activity.groupType = dto.groupType;
+    }
+    if (dto.groupSize !== undefined) {
+      activity.groupSize = dto.groupSize;
+    }
+    if (dto.tags != null) {
+      activity.tags = dto.tags;
+    }
+    if (dto.vibeTags != null) {
+      activity.vibeTags = dto.vibeTags;
+    }
+
+    const category =
+      activity.category ??
+      (await this.categoryRepo.findOne({ where: { id: activity.categoryId } }));
+
+    activity.coverUrl = resolveActivityCoverUrl({
+      id: activity.id,
+      coverUrl: dto.coverUrl !== undefined ? dto.coverUrl : activity.coverUrl,
+      title: activity.title,
+      tags: activity.tags,
+      categorySlug: category?.slug ?? null,
+    });
+
+    await this.activityRepo.save(activity);
+    await this.refreshActivityStatus(activity);
+
+    return this.findById(id);
+  }
+
+  async cancel(id: string, userId: string) {
+    const activity = await this.getOwnedActivity(id, userId);
+    activity.status = 'cancelled';
+    await this.activityRepo.save(activity);
+    return this.findById(id);
   }
 
   async join(activityId: string, userId: string, status: 'joined' | 'maybe' = 'joined') {
