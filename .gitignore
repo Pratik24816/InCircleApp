@@ -25,6 +25,7 @@ npm-debug.log*
 
 # Mobile / native
 mobile/src/config/api.config.local.ts
+mobile/src/config/places.config.local.ts
 mobile/android/.gradle/
 mobile/android/app/build/
 mobile/android/build/
@@ -38,3 +39,6 @@ backend/uploads/
 
 # Admin
 admin/dist/
+
+# Activity cover uploads (local dev)
+backend/uploads/activity-covers/

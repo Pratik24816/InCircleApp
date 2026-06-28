@@ -1,5 +1,5 @@
 import type { Activity, AuthUser, Category } from '../types/auth';
-import { resolveActivityCoverUrl } from './activityCovers';
+import { resolveActivityCoverUrl, isDirectImageUrl } from './activityCovers';
 
 const PREVIEW_ID = '00000000-0000-4000-8000-000000000099';
 
@@ -28,6 +28,8 @@ export type CreateActivityPreviewInput = {
   groupType: Activity['groupType'];
   groupSize: string;
   coverUrl?: string | null;
+  latitude?: number;
+  longitude?: number;
   creator: AuthUser | null;
 };
 
@@ -41,18 +43,20 @@ export function buildActivityPreview(input: CreateActivityPreviewInput): Activit
   const groupSize = parsedSize != null && !Number.isNaN(parsedSize) ? parsedSize : null;
   const host = input.creator;
 
+  const storedCustom = input.coverUrl?.trim() ?? null;
+
   const draft: Activity = {
     id: PREVIEW_ID,
     creatorId: host?.id ?? 'preview-host',
     categoryId: input.category?.id ?? '',
     title: input.title.trim() || 'Your plan title',
     description: '',
-    coverUrl: input.coverUrl ?? null,
+    coverUrl: storedCustom,
     startDatetime: parseStartDatetime(input.startDatetime).toISOString(),
     locationName: input.locationName.trim() || `Somewhere in ${input.city}`,
     city: input.city.trim() || 'Ahmedabad',
-    latitude: 0,
-    longitude: 0,
+    latitude: input.latitude ?? 0,
+    longitude: input.longitude ?? 0,
     groupType: input.groupType,
     groupSize,
     joinedCount: 1,
@@ -81,6 +85,6 @@ export function buildActivityPreview(input: CreateActivityPreviewInput): Activit
 
   return {
     ...draft,
-    coverUrl: resolveActivityCoverUrl(draft),
+    coverUrl: storedCustom && isDirectImageUrl(storedCustom) ? storedCustom : resolveActivityCoverUrl(draft),
   };
 }
