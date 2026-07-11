@@ -21,6 +21,7 @@ const catalog_module_1 = require("./catalog/catalog.module");
 const activities_module_1 = require("./activities/activities.module");
 const reports_module_1 = require("./reports/reports.module");
 const notifications_module_1 = require("./notifications/notifications.module");
+const circle_feedback_module_1 = require("./circle-feedback/circle-feedback.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -52,6 +53,7 @@ exports.AppModule = AppModule = __decorate([
             activities_module_1.ActivitiesModule,
             reports_module_1.ReportsModule,
             notifications_module_1.NotificationsModule,
+            circle_feedback_module_1.CircleFeedbackModule,
         ],
     })
 ], AppModule);

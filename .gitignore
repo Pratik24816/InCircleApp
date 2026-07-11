@@ -38,3 +38,6 @@ backend/uploads/
 
 # Admin
 admin/dist/
+
+# Landing
+landing/dist/
