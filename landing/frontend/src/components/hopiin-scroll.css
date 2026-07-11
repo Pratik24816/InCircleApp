@@ -1,0 +1,287 @@
+.hopiin-scroll {
+  position: relative;
+  height: 280vh;
+  margin-top: -1px;
+}
+
+.hopiin-scroll__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.hopiin-scroll__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hopiin-scroll__bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+}
+
+.hopiin-scroll__bg-glow--green {
+  width: 70vw;
+  height: 70vw;
+  top: 10%;
+  left: -15%;
+  background: radial-gradient(circle, rgba(140, 255, 79, 0.2) 0%, transparent 68%);
+}
+
+.hopiin-scroll__bg-glow--blue {
+  width: 55vw;
+  height: 55vw;
+  bottom: 0;
+  right: -12%;
+  background: radial-gradient(circle, rgba(77, 181, 255, 0.16) 0%, transparent 68%);
+}
+
+.hopiin-scroll__bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(140, 255, 79, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 255, 79, 0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 72%);
+}
+
+.hopiin-scroll__ring {
+  position: absolute;
+  width: min(88vw, 900px);
+  height: min(88vw, 900px);
+  border-radius: 50%;
+  border: 1px solid rgba(140, 255, 79, 0.18);
+  box-shadow:
+    0 0 80px rgba(140, 255, 79, 0.12),
+    inset 0 0 60px rgba(140, 255, 79, 0.06);
+  pointer-events: none;
+}
+
+.hopiin-scroll__stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+}
+
+/* Shared type scale — fits viewport width */
+.hopiin-scroll__extrude,
+.hopiin-scroll__letters {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 16vw, 18rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  white-space: nowrap;
+}
+
+/* 3D extruded fill — depth stack */
+.hopiin-scroll__extrude {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  max-width: 100%;
+}
+
+.hopiin-scroll__depth {
+  position: absolute;
+  color: #0d2a0d;
+  text-shadow: 0 0 2px rgba(74, 158, 31, 0.3);
+  user-select: none;
+}
+
+.hopiin-scroll__face {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  transform: translateZ(2px);
+  overflow: hidden;
+  max-width: 100%;
+  filter: drop-shadow(0 8px 32px rgba(140, 255, 79, 0.25));
+}
+
+.hopiin-scroll__face-hop {
+  background: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #e8ffe0 35%,
+    #c8f5a0 70%,
+    #8cff4f 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hopiin-scroll__face-iin {
+  background: linear-gradient(
+    165deg,
+    #d4ff8a 0%,
+    var(--primary) 40%,
+    #5ce63a 65%,
+    var(--secondary) 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: hopiin-scroll-shimmer 6s ease-in-out infinite;
+}
+
+@keyframes hopiin-scroll-shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hopiin-scroll__shine {
+  position: absolute;
+  top: -10%;
+  width: 40%;
+  height: 120%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 48%,
+    transparent 96%
+  );
+  transform: skewX(-18deg);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Kinetic letter layer — desktop only */
+.hopiin-scroll__letters {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  transform-style: preserve-3d;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.hopiin-scroll__letter {
+  display: inline-block;
+  transform-origin: center bottom;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.35);
+  paint-order: stroke fill;
+  text-shadow: 0 0 40px rgba(140, 255, 79, 0.2);
+}
+
+.hopiin-scroll__letter--accent {
+  -webkit-text-stroke: 1.5px rgba(140, 255, 79, 0.5);
+}
+
+.hopiin-scroll__caption {
+  position: absolute;
+  bottom: clamp(2.5rem, 8vh, 5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: min(92vw, 480px);
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 2.8vw, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text-secondary);
+  text-shadow: 0 0 24px rgba(140, 255, 79, 0.2);
+}
+
+/* ── Mobile ── */
+.hopiin-scroll--mobile {
+  height: 200vh;
+}
+
+.hopiin-scroll--mobile .hopiin-scroll__extrude,
+.hopiin-scroll--mobile .hopiin-scroll__letters {
+  font-size: clamp(2.5rem, 13.5vw, 4.25rem);
+  letter-spacing: -0.03em;
+}
+
+.hopiin-scroll--mobile .hopiin-scroll__stage {
+  padding: 0 1.25rem;
+}
+
+.hopiin-scroll--mobile .hopiin-scroll__face {
+  filter: drop-shadow(0 4px 20px rgba(140, 255, 79, 0.35));
+}
+
+.hopiin-scroll--mobile .hopiin-scroll__ring {
+  width: min(72vw, 340px);
+  height: min(72vw, 340px);
+}
+
+.hopiin-scroll--mobile .hopiin-scroll__caption {
+  letter-spacing: 0.14em;
+  bottom: clamp(2rem, 6vh, 3.5rem);
+  padding: 0 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .hopiin-scroll--mobile .hopiin-scroll__extrude {
+    font-size: clamp(2.1rem, 12.5vw, 3.5rem);
+  }
+
+  .hopiin-scroll--mobile .hopiin-scroll__ring {
+    width: min(68vw, 300px);
+    height: min(68vw, 300px);
+  }
+}
+
+@media (max-width: 360px) {
+  .hopiin-scroll--mobile .hopiin-scroll__extrude {
+    font-size: clamp(1.85rem, 11.5vw, 3rem);
+    letter-spacing: -0.02em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hopiin-scroll,
+  .hopiin-scroll--mobile {
+    height: auto;
+    min-height: 60vh;
+  }
+
+  .hopiin-scroll__sticky {
+    position: relative;
+    min-height: 60vh;
+  }
+
+  .hopiin-scroll__letter {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .hopiin-scroll__face-iin {
+    animation: none;
+  }
+}

@@ -1,0 +1,95 @@
+/* Brand showcase — see media.css */
+.brand-showcase {
+  background: linear-gradient(180deg, transparent, rgba(11, 18, 36, 0.5), transparent);
+}
+
+.brand-showcase__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.brand-showcase__visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.brand-showcase__logo-panel {
+  padding: 2rem;
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.brand-showcase__primary {
+  display: block;
+  width: min(100%, 240px);
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
+.brand-showcase__wordmark-panel {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: inline-block;
+}
+
+.brand-showcase__wordmark {
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+}
+
+.brand-showcase__copy p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1.75;
+  margin-bottom: 1.5rem;
+}
+
+.brand-showcase__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.brand-showcase__list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.brand-showcase__list li::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .brand-showcase__grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    text-align: center;
+  }
+
+  .brand-showcase__wordmark-panel {
+    margin-inline: auto;
+  }
+
+  .brand-showcase__list {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
