@@ -40,5 +40,5 @@ backend/uploads/
 # Admin
 admin/dist/
 
-# Activity cover uploads (local dev)
-backend/uploads/activity-covers/
+# Landing
+landing/dist/
