@@ -1,0 +1,237 @@
+.section {
+  position: relative;
+  padding: clamp(5rem, 12vw, 9rem) 0;
+  z-index: 2;
+}
+
+.section__eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.section__title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 3rem;
+  max-width: 800px;
+}
+
+.section__title--center {
+  text-align: center;
+  margin-inline: auto;
+}
+
+/* Story */
+.story__beats {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.story__beat {
+  padding: 2.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.story__beat:hover {
+  border-color: rgba(140, 255, 79, 0.2);
+  transform: translateX(8px);
+}
+
+.story__beat--accent {
+  background: linear-gradient(135deg, var(--primary-dim), var(--secondary-dim));
+  border-color: rgba(140, 255, 79, 0.25);
+}
+
+.story__act {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.story__beat-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.story__beat-body {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  max-width: 640px;
+}
+
+/* Features — see features.css */
+
+/* Experience — see experience.css */
+
+/* Waitlist */
+.waitlist {
+  overflow: hidden;
+}
+
+.waitlist__brand {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.waitlist__brand-accent {
+  color: var(--primary);
+}
+
+.waitlist__success-logo {
+  display: block;
+  width: auto;
+  height: clamp(3rem, 10vw, 4rem);
+  object-fit: contain;
+  margin: 0 auto 0.75rem;
+  filter: drop-shadow(0 0 24px rgba(140, 255, 79, 0.35));
+}
+
+.waitlist__glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vw;
+  height: 80vw;
+  max-width: 800px;
+  max-height: 800px;
+  background: radial-gradient(circle, rgba(140, 255, 79, 0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.waitlist__inner {
+  position: relative;
+}
+
+.waitlist__card {
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 4rem);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(140, 255, 79, 0.2);
+  background: linear-gradient(180deg, rgba(11, 18, 36, 0.9), rgba(2, 6, 23, 0.95));
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 100px rgba(140, 255, 79, 0.08);
+}
+
+.waitlist__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.waitlist__desc {
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin: 0 auto 2rem;
+  line-height: 1.7;
+}
+
+.waitlist__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-width: 480px;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.waitlist__input {
+  flex: 1 1 220px;
+  padding: 0.95rem 1.25rem;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.waitlist__input:focus {
+  border-color: rgba(140, 255, 79, 0.4);
+  box-shadow: 0 0 0 3px var(--primary-dim);
+}
+
+.waitlist__input::placeholder {
+  color: var(--muted);
+}
+
+.waitlist__submit {
+  flex: 0 0 auto;
+}
+
+.waitlist__success {
+  padding: 2rem;
+}
+
+.waitlist__success-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.waitlist__success p {
+  font-size: 1.1rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.waitlist__error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.waitlist__social {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.waitlist__ig {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.waitlist__ig:hover {
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .story__beat:hover {
+    transform: none;
+  }
+
+  .waitlist__form {
+    flex-direction: column;
+  }
+
+  .waitlist__submit {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,622 @@
+/* ── Logo mini-games hub ── */
+.logo-games {
+  background: linear-gradient(180deg, transparent, rgba(11, 18, 36, 0.6), transparent);
+  overflow: hidden;
+}
+
+.logo-games__header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
+}
+
+.logo-games__intro {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin-top: 1rem;
+}
+
+.logo-games__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
+.logo-games__tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.6);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease;
+  white-space: nowrap;
+}
+
+.logo-games__tab:hover {
+  border-color: rgba(140, 255, 79, 0.3);
+  color: var(--text);
+}
+
+.logo-games__tab--active {
+  border-color: rgba(140, 255, 79, 0.5);
+  background: rgba(140, 255, 79, 0.12);
+  color: var(--primary);
+  box-shadow: 0 0 24px rgba(140, 255, 79, 0.15);
+}
+
+.logo-games__tab-emoji {
+  font-size: 1rem;
+}
+
+.logo-games__stage {
+  max-width: min(680px, 100%);
+  margin: 0 auto;
+  padding: 2.25rem 1.75rem 2.75rem;
+  border-radius: var(--radius-xl);
+  background: rgba(2, 6, 23, 0.75);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(140, 255, 79, 0.06);
+}
+
+.logo-games__stage-head {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.logo-games__stage-head h3 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.logo-games__stage-head p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.logo-games__canvas {
+  min-height: 440px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.logo-games__cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.75rem;
+  width: 100%;
+  text-align: center;
+}
+
+/* ── Shared game UI ── */
+.lg-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+}
+
+/* Playfield wrapper with glow */
+.lg-game__playfield {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  border-radius: var(--radius-xl);
+  background: rgba(140, 255, 79, 0.03);
+  border: 1px solid rgba(140, 255, 79, 0.12);
+  overflow: hidden;
+}
+
+.lg-game__playfield-glow {
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at 50% 50%, rgba(140, 255, 79, 0.12) 0%, transparent 55%);
+  pointer-events: none;
+  animation: playfield-pulse 4s ease-in-out infinite;
+}
+
+@keyframes playfield-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+/* Win / loss overlay */
+.lg-outcome {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+  border-radius: inherit;
+}
+
+.lg-outcome--win {
+  box-shadow: inset 0 0 60px rgba(140, 255, 79, 0.15);
+}
+
+.lg-outcome--loss {
+  box-shadow: inset 0 0 60px rgba(255, 90, 95, 0.12);
+}
+
+.lg-outcome__burst {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(140, 255, 79, 0.5) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.lg-outcome--loss .lg-outcome__burst {
+  background: radial-gradient(circle, rgba(255, 90, 95, 0.45) 0%, transparent 70%);
+}
+
+.lg-outcome__particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  pointer-events: none;
+}
+
+.lg-outcome__particle--loss {
+  background: #ff5a5f;
+  box-shadow: 0 0 8px #ff5a5f;
+}
+
+.lg-outcome__card {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 1.5rem 1.25rem;
+  max-width: 90%;
+}
+
+.lg-outcome__emoji {
+  display: block;
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 0 20px rgba(140, 255, 79, 0.4));
+}
+
+.lg-outcome--loss .lg-outcome__emoji {
+  filter: drop-shadow(0 0 16px rgba(255, 90, 95, 0.4));
+}
+
+.lg-outcome__title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  color: var(--text);
+}
+
+.lg-outcome__subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.lg-outcome__again {
+  margin-top: 0.5rem;
+}
+
+.lg-game__arena {
+  position: relative;
+  margin: 0 auto;
+}
+
+.lg-game__radar {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.lg-game__radar--faded {
+  opacity: 0.35;
+}
+
+.radar-visual__sweep {
+  transform-origin: 100px 100px;
+  animation: radar-sweep 4s linear infinite;
+}
+
+.radar-visual__ring--active circle {
+  stroke: rgba(140, 255, 79, 0.55);
+}
+
+@keyframes radar-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lg-game__hud {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.lg-game__hud strong {
+  color: var(--primary);
+}
+
+.lg-game__msg {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  min-height: 1.4em;
+}
+
+.lg-game__btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(140, 255, 79, 0.35);
+  background: rgba(140, 255, 79, 0.1);
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lg-game__btn:hover {
+  background: rgba(140, 255, 79, 0.18);
+  box-shadow: 0 0 20px rgba(140, 255, 79, 0.2);
+}
+
+.lg-game__btn--primary {
+  background: linear-gradient(135deg, var(--primary), #6ee02a);
+  color: var(--bg);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+}
+
+.lg-game__btn--primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lg-game__btn--lg {
+  padding: 0.9rem 2rem;
+  font-size: 1.05rem;
+  min-width: 180px;
+  box-shadow: 0 0 32px rgba(140, 255, 79, 0.35);
+}
+
+.lg-game__hud--pill {
+  display: inline-flex;
+  padding: 0.45rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: rgba(140, 255, 79, 0.08);
+  border: 1px solid rgba(140, 255, 79, 0.2);
+  font-size: 0.95rem;
+}
+
+.lg-game__result-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: rgba(140, 255, 79, 0.08);
+  border: 1px solid rgba(140, 255, 79, 0.2);
+  width: 100%;
+  max-width: 320px;
+}
+
+.lg-game__result-card strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.lg-game__result-card span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.lg-game__result-emoji {
+  font-size: 1.75rem;
+}
+
+/* Shared logo image */
+.lg-logo-img {
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Spin & Stop */
+.lg-spin-stop__wrap {
+  position: relative;
+  width: min(100%, 340px);
+  height: min(100%, 340px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.lg-spin-stop__ring-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 2px solid rgba(140, 255, 79, 0.15);
+  box-shadow: 0 0 40px rgba(140, 255, 79, 0.12), inset 0 0 30px rgba(140, 255, 79, 0.06);
+  pointer-events: none;
+}
+
+.lg-spin-stop__orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed rgba(140, 255, 79, 0.35);
+}
+
+.lg-spin-stop__label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 1.75rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(2, 6, 23, 0.85);
+  border: 1px solid rgba(140, 255, 79, 0.3);
+  box-shadow: 0 0 16px rgba(140, 255, 79, 0.2);
+}
+
+.lg-spin-stop__pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--primary);
+  z-index: 4;
+  font-size: 1.35rem;
+  filter: drop-shadow(0 0 10px var(--primary));
+}
+
+.lg-spin-stop__logo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 0 24px rgba(140, 255, 79, 0.25));
+}
+
+/* Memory */
+.lg-memory__field--match {
+  animation: memory-flash-win 0.45s ease;
+}
+
+.lg-memory__field--miss {
+  animation: memory-flash-miss 0.45s ease;
+}
+
+@keyframes memory-flash-win {
+  0%, 100% { box-shadow: inset 0 0 0 rgba(140, 255, 79, 0); }
+  50% { box-shadow: inset 0 0 40px rgba(140, 255, 79, 0.2); }
+}
+
+@keyframes memory-flash-miss {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.lg-memory__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.lg-memory__card {
+  aspect-ratio: 1;
+  min-height: 72px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(140, 255, 79, 0.2);
+  background: linear-gradient(145deg, rgba(140, 255, 79, 0.1), rgba(2, 6, 23, 0.9));
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lg-memory__card:hover:not(:disabled) {
+  border-color: rgba(140, 255, 79, 0.45);
+  box-shadow: 0 0 20px rgba(140, 255, 79, 0.15);
+}
+
+.lg-memory__card--open {
+  background: rgba(2, 6, 23, 0.95);
+  border-color: rgba(140, 255, 79, 0.4);
+}
+
+.lg-memory__card--matched {
+  opacity: 0.55;
+  border-color: rgba(140, 255, 79, 0.5);
+  box-shadow: 0 0 24px rgba(140, 255, 79, 0.2);
+}
+
+.lg-memory__logo {
+  width: 85%;
+  height: auto;
+  object-fit: contain;
+}
+
+.lg-memory__emoji {
+  font-size: 1.75rem;
+}
+
+.lg-memory__text {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Trace */
+.lg-trace__wrap {
+  position: relative;
+  width: min(100%, 320px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.lg-trace__canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(140, 255, 79, 0.05);
+  border: 2px solid rgba(140, 255, 79, 0.2);
+  touch-action: none;
+  cursor: crosshair;
+  box-shadow: 0 0 30px rgba(140, 255, 79, 0.08);
+}
+
+.lg-trace__logo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+/* Dodge */
+.lg-dodge__arena {
+  position: relative;
+  margin: 0 auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(140, 255, 79, 0.15);
+  background: linear-gradient(180deg, rgba(140, 255, 79, 0.06) 0%, rgba(2, 6, 23, 0.4) 100%);
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(140, 255, 79, 0.05);
+}
+
+.lg-dodge__player {
+  position: absolute;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 3;
+  filter: drop-shadow(0 0 16px rgba(140, 255, 79, 0.45));
+}
+
+.lg-dodge__item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 1.6rem;
+  z-index: 2;
+}
+
+.lg-dodge__item--bad {
+  filter: grayscale(0.4) opacity(0.85);
+}
+
+.lg-dodge__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.lg-dodge__controls button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(140, 255, 79, 0.4);
+  background: rgba(140, 255, 79, 0.12);
+  color: var(--primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(140, 255, 79, 0.15);
+}
+
+.lg-dodge__controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .logo-games__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .logo-games__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .logo-games__stage {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .logo-games__canvas {
+    min-height: 380px;
+  }
+
+  .lg-game__playfield {
+    padding: 1rem;
+  }
+
+  .lg-spin-stop__wrap {
+    width: min(100%, 280px);
+    height: min(100%, 280px);
+  }
+
+  .lg-memory__card {
+    min-height: 58px;
+    font-size: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-game__playfield-glow {
+    animation: none;
+  }
+}

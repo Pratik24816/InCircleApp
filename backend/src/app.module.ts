@@ -9,7 +9,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { UploadsModule } from './uploads/uploads.module';
+import { CircleFeedbackModule } from './circle-feedback/circle-feedback.module';
 
 @Module({
   imports: [
@@ -38,7 +38,7 @@ import { UploadsModule } from './uploads/uploads.module';
     ActivitiesModule,
     ReportsModule,
     NotificationsModule,
-    UploadsModule,
+    CircleFeedbackModule,
   ],
 })
 export class AppModule {}

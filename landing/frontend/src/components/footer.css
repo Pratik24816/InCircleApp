@@ -1,0 +1,36 @@
+.footer {
+  padding: 3rem 0 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.footer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer__logo {
+  display: block;
+  width: auto;
+  height: clamp(2rem, 6vw, 2.5rem);
+  object-fit: contain;
+}
+
+.footer__tagline {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.footer__copy {
+  color: var(--muted);
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
