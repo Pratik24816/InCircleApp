@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppButton } from './AppButton';
 import { colors, radii, spacing, typography } from '../theme/tokens';
 import {
-  addMinutes,
   formatDayChipLabel,
   formatFriendlyActivityDate,
   formatFriendlyActivityTime,
@@ -11,6 +11,7 @@ import {
   getUpcomingDays,
   isSameCalendarDay,
   matchQuickPreset,
+  mergeDateAndTime,
   setCalendarDay,
   type ActivityQuickPreset,
 } from '../utils/activityDatetime';
@@ -21,17 +22,35 @@ const QUICK_PRESETS: { id: ActivityQuickPreset; label: string }[] = [
   { id: 'weekend', label: 'Weekend' },
 ];
 
+type PickerTarget = 'start-date' | 'start-time' | 'end-date' | 'end-time';
+
 type Props = {
   value: Date;
   onChange: (date: Date) => void;
+  hasEndDate?: boolean;
+  onHasEndDateChange?: (enabled: boolean) => void;
+  endValue?: Date | null;
+  onEndChange?: (date: Date | null) => void;
+  startError?: string;
+  endError?: string;
 };
 
-export function ActivityDatePicker({ value, onChange }: Props) {
+export function ActivityDatePicker({
+  value,
+  onChange,
+  hasEndDate = false,
+  onHasEndDateChange,
+  endValue,
+  onEndChange,
+  startError,
+  endError,
+}: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const now = useMemo(() => new Date(), []);
   const dayOptions = useMemo(() => getUpcomingDays(14, now), [now]);
   const activePreset = matchQuickPreset(value, now);
-  const minTime = now.getTime();
+  const minDate = now;
 
   const applyPreset = (preset: ActivityQuickPreset) => {
     onChange(getPresetDate(preset, now));
@@ -41,13 +60,54 @@ export function ActivityDatePicker({ value, onChange }: Props) {
     onChange(setCalendarDay(value, day));
   };
 
-  const shiftTime = (deltaMinutes: number) => {
-    const next = addMinutes(value, deltaMinutes);
-    if (next.getTime() < minTime) {
-      onChange(new Date(minTime + 15 * 60 * 1000));
+  const openPicker = (target: PickerTarget) => {
+    setPickerTarget(target);
+  };
+
+  const closePicker = () => setPickerTarget(null);
+
+  const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      closePicker();
+    }
+    if (event.type === 'dismissed' || !selected) {
       return;
     }
-    onChange(next);
+
+    if (pickerTarget === 'start-date') {
+      onChange(mergeDateAndTime(selected, value));
+      return;
+    }
+    if (pickerTarget === 'start-time') {
+      onChange(mergeDateAndTime(value, selected));
+      return;
+    }
+    if (pickerTarget === 'end-date' && onEndChange) {
+      const base = endValue ?? new Date(value.getTime() + 2 * 60 * 60 * 1000);
+      onEndChange(mergeDateAndTime(selected, base));
+      return;
+    }
+    if (pickerTarget === 'end-time' && onEndChange && endValue) {
+      onEndChange(mergeDateAndTime(endValue, selected));
+    }
+  };
+
+  const pickerValue = (() => {
+    if (pickerTarget === 'end-date' || pickerTarget === 'end-time') {
+      return endValue ?? new Date(value.getTime() + 2 * 60 * 60 * 1000);
+    }
+    return value;
+  })();
+
+  const toggleEndDate = () => {
+    const next = !hasEndDate;
+    onHasEndDateChange?.(next);
+    if (next && onEndChange) {
+      onEndChange(new Date(value.getTime() + 2 * 60 * 60 * 1000));
+    }
+    if (!next) {
+      onEndChange?.(null);
+    }
   };
 
   return (
@@ -55,18 +115,24 @@ export function ActivityDatePicker({ value, onChange }: Props) {
       <Text style={styles.label}>When</Text>
       <Pressable
         onPress={() => setExpanded(current => !current)}
-        style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}>
+        style={({ pressed }) => [
+          styles.field,
+          pressed && styles.fieldPressed,
+          startError && styles.fieldError,
+        ]}>
         <Text style={styles.dateLine}>{formatFriendlyActivityDate(value, now)}</Text>
         <Text style={styles.timeLine}>{formatFriendlyActivityTime(value)}</Text>
+        {hasEndDate && endValue ? (
+          <Text style={styles.endLine}>Until {formatFriendlyActivityTime(endValue)}</Text>
+        ) : null}
         <Text style={styles.tapHint}>{expanded ? 'Tap to collapse' : 'Tap to change'}</Text>
       </Pressable>
+      {startError ? <Text style={styles.error}>{startError}</Text> : null}
 
       <View style={styles.chipRow}>
         {QUICK_PRESETS.map(preset => (
           <Pressable key={preset.id} onPress={() => applyPreset(preset.id)}>
-            <Text style={[styles.chip, activePreset === preset.id && styles.chipOn]}>
-              {preset.label}
-            </Text>
+            <Text style={[styles.chip, activePreset === preset.id && styles.chipOn]}>{preset.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -92,20 +158,57 @@ export function ActivityDatePicker({ value, onChange }: Props) {
             })}
           </ScrollView>
 
-          <Text style={styles.panelLabel}>Pick a time</Text>
-          <View style={styles.timeRow}>
-            <Pressable onPress={() => shiftTime(-30)} style={styles.timeBtn}>
-              <Text style={styles.timeBtnText}>−</Text>
+          <Text style={styles.panelLabel}>Start time</Text>
+          <View style={styles.pickerRow}>
+            <Pressable onPress={() => openPicker('start-date')} style={styles.pickerBtn}>
+              <Text style={styles.pickerBtnLabel}>Date</Text>
+              <Text style={styles.pickerBtnValue}>
+                {value.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+              </Text>
             </Pressable>
-            <Text style={styles.timeValue}>{formatFriendlyActivityTime(value)}</Text>
-            <Pressable onPress={() => shiftTime(30)} style={styles.timeBtn}>
-              <Text style={styles.timeBtnText}>+</Text>
+            <Pressable onPress={() => openPicker('start-time')} style={styles.pickerBtn}>
+              <Text style={styles.pickerBtnLabel}>Time</Text>
+              <Text style={styles.pickerBtnValue}>{formatFriendlyActivityTime(value)}</Text>
             </Pressable>
           </View>
-          <Text style={styles.timeHint}>Adjust in 30-minute steps</Text>
+
+          <Pressable onPress={toggleEndDate} style={styles.endToggle}>
+            <View style={[styles.checkbox, hasEndDate && styles.checkboxOn]}>
+              {hasEndDate ? <Text style={styles.checkmark}>✓</Text> : null}
+            </View>
+            <Text style={styles.endToggleText}>Add end time (optional)</Text>
+          </Pressable>
+
+          {hasEndDate ? (
+            <View style={styles.pickerRow}>
+              <Pressable onPress={() => openPicker('end-date')} style={styles.pickerBtn}>
+                <Text style={styles.pickerBtnLabel}>End date</Text>
+                <Text style={styles.pickerBtnValue}>
+                  {(endValue ?? value).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => openPicker('end-time')} style={styles.pickerBtn}>
+                <Text style={styles.pickerBtnLabel}>End time</Text>
+                <Text style={styles.pickerBtnValue}>
+                  {formatFriendlyActivityTime(endValue ?? value)}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {endError ? <Text style={styles.error}>{endError}</Text> : null}
 
           <AppButton title="Done" onPress={() => setExpanded(false)} style={styles.doneBtn} />
         </View>
+      ) : null}
+
+      {pickerTarget ? (
+        <DateTimePicker
+          value={pickerValue}
+          mode={pickerTarget.includes('time') ? 'time' : 'date'}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          minimumDate={pickerTarget.includes('start') ? minDate : value}
+          onChange={handlePickerChange}
+        />
       ) : null}
     </View>
   );
@@ -126,9 +229,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   fieldPressed: { borderColor: 'rgba(140,255,79,0.45)' },
+  fieldError: { borderColor: colors.danger },
   dateLine: {
     ...typography.title,
     color: colors.text,
@@ -139,10 +243,20 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
+  endLine: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
   tapHint: {
     ...typography.caption,
     color: colors.muted,
     marginTop: spacing.xs,
+  },
+  error: {
+    ...typography.caption,
+    color: colors.danger,
+    marginBottom: spacing.sm,
   },
   chipRow: {
     flexDirection: 'row',
@@ -205,40 +319,57 @@ const styles = StyleSheet.create({
   dayChipTextOn: {
     color: colors.primary,
   },
-  timeRow: {
+  pickerRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  pickerBtn: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  pickerBtnLabel: {
+    ...typography.caption,
+    color: colors.muted,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  pickerBtnValue: {
+    ...typography.subtitle,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  endToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.lg,
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  timeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  timeBtnText: {
-    ...typography.title,
-    color: colors.text,
-    lineHeight: 28,
+  checkboxOn: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(140,255,79,0.15)',
   },
-  timeValue: {
-    ...typography.title,
-    color: colors.text,
-    minWidth: 100,
-    textAlign: 'center',
+  checkmark: {
+    color: colors.primary,
+    fontSize: 14,
     fontWeight: '700',
   },
-  timeHint: {
-    ...typography.caption,
-    color: colors.muted,
-    textAlign: 'center',
-    marginBottom: spacing.md,
+  endToggleText: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
   doneBtn: { marginTop: spacing.xs },
 });

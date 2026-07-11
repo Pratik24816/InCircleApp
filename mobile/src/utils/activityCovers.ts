@@ -42,6 +42,9 @@ const CATEGORY_COVERS: Record<string, string> = {
 
 export function isDirectImageUrl(url: string): boolean {
   const u = url.trim().toLowerCase();
+  if (u.startsWith('file://')) {
+    return true;
+  }
   if (!u.startsWith('http')) {
     return false;
   }

@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -10,19 +11,23 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityCoverPicker } from '../components/ActivityCoverPicker';
 import { ActivityDatePicker } from '../components/ActivityDatePicker';
+import { ActivityLocationPicker, type LocationSelection } from '../components/ActivityLocationPicker';
 import { AppButton } from '../components/AppButton';
 import { AppInput } from '../components/AppInput';
 import { CreateActivityPreview } from '../components/CreateActivityPreview';
+import { CreatePublishSuccess } from '../components/CreatePublishSuccess';
 import { ScreenBg } from '../components/ScreenBg';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useAuth } from '../context/AuthContext';
 import { createActivity } from '../services/activities.service';
 import { fetchCategories } from '../services/catalog.service';
 import { getApiErrorMessage } from '../services/auth.service';
+import { uploadActivityCover } from '../services/uploads.service';
 import { useAppStore } from '../store/useAppStore';
 import type { Category } from '../types/auth';
 import { colors, radii, spacing, typography } from '../theme/tokens';
@@ -30,6 +35,12 @@ import type { CreateStackList } from '../navigation/types';
 import { buildActivityPreview } from '../utils/buildActivityPreview';
 import { getTomorrowPreset } from '../utils/activityDatetime';
 import { getCoverPhotoLabel, resolveActivityCoverUrl } from '../utils/activityCovers';
+import {
+  CREATE_FORM_LIMITS,
+  firstCreateFormErrorKey,
+  validateCreateActivityForm,
+  type CreateFormErrors,
+} from '../utils/createActivityValidation';
 
 type Nav = NativeStackNavigationProp<CreateStackList>;
 
@@ -57,6 +68,7 @@ const groupTypes = [
 ];
 
 type GroupTypeId = (typeof groupTypes)[number]['id'];
+type FieldKey = keyof CreateFormErrors | 'preview';
 
 type PlanStepProps = {
   title: string;
@@ -64,11 +76,16 @@ type PlanStepProps = {
   tags: string;
   categories: Category[];
   categoryId: string | null;
+  coverUrl: string | null;
   coverLabel: string;
+  coverLocalUri: string | null;
+  errors: CreateFormErrors;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onTagsChange: (value: string) => void;
   onCategoryChange: (id: string) => void;
+  onCoverLocalUriChange: (uri: string | null) => void;
+  onLayout: (key: FieldKey) => (event: LayoutChangeEvent) => void;
 };
 
 function CreatePlanStep({
@@ -77,71 +94,127 @@ function CreatePlanStep({
   tags,
   categories,
   categoryId,
+  coverUrl,
   coverLabel,
+  coverLocalUri,
+  errors,
   onTitleChange,
   onDescriptionChange,
   onTagsChange,
   onCategoryChange,
+  onCoverLocalUriChange,
+  onLayout,
 }: PlanStepProps) {
   return (
-    <View style={styles.section}>
+    <View style={styles.section} onLayout={onLayout('title')}>
       <Text style={styles.sectionEyebrow}>The plan</Text>
       <Text style={styles.lead}>What's the vibe?</Text>
       <Text style={styles.leadSub}>Name it, describe it, pick a category.</Text>
-      <AppInput label="Title" placeholder="Morning Riverfront Walk" value={title} onChangeText={onTitleChange} />
       <AppInput
-        label="Description"
-        placeholder="Easy 5 km walk. All paces welcome."
-        multiline
-        value={description}
-        onChangeText={onDescriptionChange}
+        label={`Title (${CREATE_FORM_LIMITS.titleMin}–${CREATE_FORM_LIMITS.titleMax})`}
+        placeholder="Morning Riverfront Walk"
+        value={title}
+        onChangeText={onTitleChange}
+        error={errors.title}
+        maxLength={CREATE_FORM_LIMITS.titleMax}
       />
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.chipRow}>
-        {categories.map(c => (
-          <Pressable key={c.id} onPress={() => onCategoryChange(c.id)}>
-            <Text style={[styles.chip, categoryId === c.id && styles.chipOn]}>
-              {c.icon} {c.name}
-            </Text>
-          </Pressable>
-        ))}
+      <View onLayout={onLayout('description')}>
+        <AppInput
+          label={`Description (max ${CREATE_FORM_LIMITS.descriptionMax})`}
+          placeholder="Easy 5 km walk. All paces welcome."
+          multiline
+          value={description}
+          onChangeText={onDescriptionChange}
+          error={errors.description}
+          maxLength={CREATE_FORM_LIMITS.descriptionMax}
+        />
+      </View>
+      <View onLayout={onLayout('categoryId')}>
+        <Text style={styles.label}>Category</Text>
+        {errors.categoryId ? <Text style={styles.fieldError}>{errors.categoryId}</Text> : null}
+        <View style={styles.chipRow}>
+          {categories.map(c => (
+            <Pressable key={c.id} onPress={() => onCategoryChange(c.id)}>
+              <Text style={[styles.chip, categoryId === c.id && styles.chipOn]}>
+                {c.icon} {c.name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
       <AppInput label="Vibe tags" placeholder="chill, cricket, walk" value={tags} onChangeText={onTagsChange} />
-      <Text style={styles.coverHint}>Cover photo: {coverLabel} — auto-selected</Text>
+      <ActivityCoverPicker
+        coverUrl={coverUrl}
+        autoLabel={coverLabel}
+        localUri={coverLocalUri}
+        onLocalUriChange={onCoverLocalUriChange}
+      />
     </View>
   );
 }
 
 type TimePlaceStepProps = {
   startDate: Date;
+  endDate: Date | null;
+  hasEndDate: boolean;
   locationName: string;
   activityCity: string;
+  latitude?: number;
+  longitude?: number;
+  errors: CreateFormErrors;
+  biasCity: string;
   onStartDateChange: (date: Date) => void;
-  onLocationNameChange: (value: string) => void;
-  onActivityCityChange: (value: string) => void;
+  onEndDateChange: (date: Date | null) => void;
+  onHasEndDateChange: (enabled: boolean) => void;
+  onLocationChange: (value: LocationSelection) => void;
+  onLayout: (key: FieldKey) => (event: LayoutChangeEvent) => void;
 };
 
 function CreateTimePlaceStep({
   startDate,
+  endDate,
+  hasEndDate,
   locationName,
   activityCity,
+  latitude,
+  longitude,
+  errors,
+  biasCity,
   onStartDateChange,
-  onLocationNameChange,
-  onActivityCityChange,
+  onEndDateChange,
+  onHasEndDateChange,
+  onLocationChange,
+  onLayout,
 }: TimePlaceStepProps) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionEyebrow}>Time & place</Text>
       <Text style={styles.lead}>When & where?</Text>
       <Text style={styles.leadSub}>Help people find you IRL.</Text>
-      <ActivityDatePicker value={startDate} onChange={onStartDateChange} />
-      <AppInput
-        label="Location"
-        placeholder="Sabarmati Riverfront Gate 3"
-        value={locationName}
-        onChangeText={onLocationNameChange}
-      />
-      <AppInput label="City" placeholder="Ahmedabad" value={activityCity} onChangeText={onActivityCityChange} />
+      <View onLayout={onLayout('startDate')}>
+        <ActivityDatePicker
+          value={startDate}
+          onChange={onStartDateChange}
+          hasEndDate={hasEndDate}
+          onHasEndDateChange={onHasEndDateChange}
+          endValue={endDate}
+          onEndChange={onEndDateChange}
+          startError={errors.startDate}
+          endError={errors.endDate}
+        />
+      </View>
+      <View onLayout={onLayout('locationName')}>
+        <ActivityLocationPicker
+          locationName={locationName}
+          city={activityCity}
+          latitude={latitude}
+          longitude={longitude}
+          biasCity={biasCity}
+          onChange={onLocationChange}
+          locationError={errors.locationName}
+          cityError={errors.activityCity}
+        />
+      </View>
     </View>
   );
 }
@@ -149,15 +222,19 @@ function CreateTimePlaceStep({
 type CrewStepProps = {
   groupType: GroupTypeId;
   groupSize: string;
+  groupSizeError?: string;
   onGroupTypeChange: (id: GroupTypeId) => void;
   onGroupSizeChange: (value: string) => void;
+  onLayout: (key: FieldKey) => (event: LayoutChangeEvent) => void;
 };
 
 function CreateCrewStep({
   groupType,
   groupSize,
+  groupSizeError,
   onGroupTypeChange,
   onGroupSizeChange,
+  onLayout,
 }: CrewStepProps) {
   return (
     <View style={styles.section}>
@@ -177,13 +254,16 @@ function CreateCrewStep({
           </View>
         </Pressable>
       ))}
-      <AppInput
-        label="Group size (optional)"
-        placeholder="e.g. 8"
-        keyboardType="number-pad"
-        value={groupSize}
-        onChangeText={onGroupSizeChange}
-      />
+      <View onLayout={onLayout('groupSize')}>
+        <AppInput
+          label="Group size (optional)"
+          placeholder="e.g. 8"
+          keyboardType="number-pad"
+          value={groupSize}
+          onChangeText={onGroupSizeChange}
+          error={groupSizeError}
+        />
+      </View>
     </View>
   );
 }
@@ -192,6 +272,7 @@ export function CreateActivityScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const fieldOffsets = useRef<Partial<Record<FieldKey, number>>>({});
   const { user } = useAuth();
   const city = useAppStore(s => s.selectedCity);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -200,11 +281,20 @@ export function CreateActivityScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState(() => getTomorrowPreset());
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [hasEndDate, setHasEndDate] = useState(false);
   const [locationName, setLocationName] = useState('');
   const [activityCity, setActivityCity] = useState(city);
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
   const [groupSize, setGroupSize] = useState('');
   const [tags, setTags] = useState('');
+  const [coverLocalUri, setCoverLocalUri] = useState<string | null>(null);
+  const [errors, setErrors] = useState<CreateFormErrors>({});
+  const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [publishedTitle, setPublishedTitle] = useState('');
 
   const footerPad = Math.max(insets.bottom, spacing.md);
 
@@ -237,69 +327,161 @@ export function CreateActivityScreen() {
         tags,
         groupType: gt,
         groupSize,
+        coverUrl: coverLocalUri,
+        latitude,
+        longitude,
         creator: user,
       }),
-    [title, locationName, activityCity, city, startIso, selectedCategory, tags, gt, groupSize, user],
+    [
+      title,
+      locationName,
+      activityCity,
+      city,
+      startIso,
+      selectedCategory,
+      tags,
+      gt,
+      groupSize,
+      coverLocalUri,
+      latitude,
+      longitude,
+      user,
+    ],
   );
 
   const coverLabel = useMemo(() => getCoverPhotoLabel(previewActivity), [previewActivity]);
+  const resolvedCoverUrl = useMemo(() => resolveActivityCoverUrl(previewActivity), [previewActivity]);
 
-  const scrollToPreview = () => {
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  const onFieldLayout = (key: FieldKey) => (event: LayoutChangeEvent) => {
+    fieldOffsets.current[key] = event.nativeEvent.layout.y;
   };
 
-  const validateForm = (): boolean => {
-    if (!title.trim()) {
-      Alert.alert('Add a title', 'Give your plan a name people will notice.');
-      return false;
+  const scrollToField = (key: FieldKey) => {
+    if (key === 'preview') {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
     }
-    if (!description.trim()) {
-      Alert.alert('Add a description', 'Tell people what to expect.');
-      return false;
+    const y = fieldOffsets.current[key];
+    if (y != null) {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
     }
-    if (!categoryId) {
-      Alert.alert('Pick a category');
-      return false;
+  };
+
+  const runValidation = (): CreateFormErrors => {
+    const next = validateCreateActivityForm({
+      title,
+      description,
+      categoryId,
+      startDate,
+      endDate,
+      hasEndDate,
+      locationName,
+      activityCity,
+      groupType: gt,
+      groupSize,
+    });
+    setErrors(next);
+    return next;
+  };
+
+  useEffect(() => {
+    if (!touched) {
+      return;
     }
-    if (startDate.getTime() <= Date.now()) {
-      Alert.alert('Pick a future time', 'Your plan needs to start in the future.');
-      return false;
-    }
-    if (!locationName.trim()) {
-      Alert.alert('Add a location', 'Where should people meet you?');
-      return false;
-    }
-    return true;
+    runValidation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, categoryId, startDate, endDate, hasEndDate, locationName, activityCity, groupSize, gt, touched]);
+
+  const scrollToPreview = () => scrollToField('preview');
+
+  const handleLocationChange = (value: LocationSelection) => {
+    setLocationName(value.locationName);
+    setActivityCity(value.city);
+    setLatitude(value.latitude);
+    setLongitude(value.longitude);
+    setTouched(true);
   };
 
   const publish = async () => {
-    if (!validateForm() || !categoryId) {
+    setTouched(true);
+    const validation = runValidation();
+    const firstKey = firstCreateFormErrorKey(validation);
+    if (firstKey) {
+      scrollToField(firstKey === 'activityCity' ? 'locationName' : firstKey);
+      Alert.alert('Almost there', 'Fix the highlighted fields to publish your plan.');
+      return;
+    }
+    if (!categoryId) {
       return;
     }
 
     setSaving(true);
     try {
+      let coverUrl = resolvedCoverUrl;
+      if (coverLocalUri) {
+        coverUrl = await uploadActivityCover(coverLocalUri);
+      }
+
       await createActivity({
         title: title.trim(),
         description: description.trim(),
         categoryId,
         startDatetime: startDate.toISOString(),
+        endDatetime: hasEndDate && endDate ? endDate.toISOString() : null,
         locationName: locationName.trim(),
         city: activityCity.trim() || city,
+        latitude,
+        longitude,
         groupType: gt,
         groupSize: groupSize.trim() ? parseInt(groupSize, 10) : null,
         tags: tags
           .split(',')
           .map(t => t.trim())
           .filter(Boolean),
-        coverUrl: resolveActivityCoverUrl(previewActivity),
+        coverUrl,
       });
-      navigation.goBack();
+      setPublishedTitle(title.trim());
+      setShowSuccess(true);
     } catch (error) {
       Alert.alert('Could not create activity', getApiErrorMessage(error));
     } finally {
       setSaving(false);
     }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setTags('');
+    setLocationName('');
+    setActivityCity(city);
+    setLatitude(undefined);
+    setLongitude(undefined);
+    setGroupSize('');
+    setCoverLocalUri(null);
+    setEndDate(null);
+    setHasEndDate(false);
+    setStartDate(getTomorrowPreset());
+    setErrors({});
+    setTouched(false);
+    if (categories[0]) {
+      setCategoryId(categories[0].id);
+    }
+  };
+
+  const goToCreatedPlans = () => {
+    setShowSuccess(false);
+    resetForm();
+    navigation.getParent()?.navigate('MyEventsTab', {
+      screen: 'MyEvents',
+      params: { initialTab: 'created' },
+    });
+  };
+
+  const finishAfterSuccess = () => {
+    setShowSuccess(false);
+    resetForm();
+    navigation.dispatch(CommonActions.goBack());
   };
 
   return (
@@ -323,32 +505,67 @@ export function CreateActivityScreen() {
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <CreateActivityPreview activity={previewActivity} />
+            <View onLayout={onFieldLayout('preview')}>
+              <CreateActivityPreview activity={previewActivity} />
+            </View>
             <CreatePlanStep
               title={title}
               description={description}
               tags={tags}
               categories={categories}
               categoryId={categoryId}
+              coverUrl={resolvedCoverUrl}
               coverLabel={coverLabel}
-              onTitleChange={setTitle}
-              onDescriptionChange={setDescription}
+              coverLocalUri={coverLocalUri}
+              errors={errors}
+              onTitleChange={v => {
+                setTitle(v);
+                setTouched(true);
+              }}
+              onDescriptionChange={v => {
+                setDescription(v);
+                setTouched(true);
+              }}
               onTagsChange={setTags}
-              onCategoryChange={setCategoryId}
+              onCategoryChange={id => {
+                setCategoryId(id);
+                setTouched(true);
+              }}
+              onCoverLocalUriChange={setCoverLocalUri}
+              onLayout={onFieldLayout}
             />
             <CreateTimePlaceStep
               startDate={startDate}
+              endDate={endDate}
+              hasEndDate={hasEndDate}
               locationName={locationName}
               activityCity={activityCity}
-              onStartDateChange={setStartDate}
-              onLocationNameChange={setLocationName}
-              onActivityCityChange={setActivityCity}
+              latitude={latitude}
+              longitude={longitude}
+              errors={errors}
+              biasCity={city}
+              onStartDateChange={d => {
+                setStartDate(d);
+                setTouched(true);
+              }}
+              onEndDateChange={d => {
+                setEndDate(d);
+                setTouched(true);
+              }}
+              onHasEndDateChange={setHasEndDate}
+              onLocationChange={handleLocationChange}
+              onLayout={onFieldLayout}
             />
             <CreateCrewStep
               groupType={gt}
               groupSize={groupSize}
+              groupSizeError={errors.groupSize}
               onGroupTypeChange={setGt}
-              onGroupSizeChange={setGroupSize}
+              onGroupSizeChange={v => {
+                setGroupSize(v);
+                setTouched(true);
+              }}
+              onLayout={onFieldLayout}
             />
           </ScrollView>
         </KeyboardAvoidingView>
@@ -364,6 +581,13 @@ export function CreateActivityScreen() {
           {saving ? <ActivityIndicator color={colors.primary} style={styles.saving} /> : null}
         </View>
       </View>
+
+      <CreatePublishSuccess
+        visible={showSuccess}
+        planTitle={publishedTitle}
+        onViewPlans={goToCreatedPlans}
+        onDone={finishAfterSuccess}
+      />
     </ScreenBg>
   );
 }
@@ -406,6 +630,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
+  fieldError: {
+    ...typography.caption,
+    color: colors.danger,
+    marginBottom: spacing.sm,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -423,12 +652,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipOn: { borderColor: colors.primary, backgroundColor: 'rgba(140,255,79,0.12)' },
-  coverHint: {
-    ...typography.caption,
-    color: colors.muted,
-    marginTop: spacing.xs,
-    lineHeight: 18,
-  },
   groupCard: {
     flexDirection: 'row',
     alignItems: 'center',

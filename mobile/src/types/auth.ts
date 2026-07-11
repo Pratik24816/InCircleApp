@@ -84,6 +84,7 @@ export type CreateActivityPayload = {
   description: string;
   categoryId: string;
   startDatetime: string;
+  endDatetime?: string | null;
   locationName: string;
   city: string;
   groupType: Activity['groupType'];

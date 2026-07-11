@@ -1,23 +1,32 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { ActivityCard } from '../components/ActivityCard';
 import { EmptyState } from '../components/EmptyState';
 import { ScreenBg } from '../components/ScreenBg';
 import { fetchMyActivities } from '../services/activities.service';
 import type { Activity } from '../types/auth';
 import { colors, spacing, typography } from '../theme/tokens';
-import type { MainStackParamList } from '../navigation/types';
+import type { MainStackParamList, MyEventsStackList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type TabKey = 'created' | 'joined' | 'done';
+type MyEventsRoute = RouteProp<MyEventsStackList, 'MyEvents'>;
 
 export function MyEventsScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<MyEventsRoute>();
   const [tab, setTab] = useState<TabKey>('joined');
   const [data, setData] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (route.params?.initialTab) {
+      setTab(route.params.initialTab);
+    }
+  }, [route.params?.initialTab]);
 
   const load = useCallback(async () => {
     setLoading(true);

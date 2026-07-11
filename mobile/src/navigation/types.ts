@@ -23,14 +23,14 @@ export type MainStackParamList = {
 
 export type TabParamList = {
   HomeTab: undefined;
-  MyEventsTab: undefined;
+  MyEventsTab: { screen?: 'MyEvents'; params?: MyEventsStackList['MyEvents'] } | undefined;
   CreateTab: undefined;
   ChatsTab: undefined;
   ProfileTab: undefined;
 };
 
 export type HomeStackList = { HomeFeed: undefined };
-export type MyEventsStackList = { MyEvents: undefined };
+export type MyEventsStackList = { MyEvents: { initialTab?: 'joined' | 'created' | 'done' } | undefined };
 export type CreateStackList = { CreateActivity: undefined };
 export type ChatsStackList = { ChatList: undefined; ChatDetail: { chatId: string } };
 export type ProfileStackList = { ProfileMain: undefined; Settings: undefined };

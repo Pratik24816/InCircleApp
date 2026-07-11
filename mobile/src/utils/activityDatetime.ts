@@ -119,6 +119,18 @@ export function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
+export function mergeDateAndTime(datePart: Date, timePart: Date): Date {
+  const next = new Date(datePart);
+  next.setHours(timePart.getHours(), timePart.getMinutes(), 0, 0);
+  return next;
+}
+
+export function setTimeOnDate(base: Date, hours: number, minutes: number): Date {
+  const next = new Date(base);
+  next.setHours(hours, minutes, 0, 0);
+  return next;
+}
+
 export function matchQuickPreset(date: Date, now = new Date()): ActivityQuickPreset | null {
   const presets: ActivityQuickPreset[] = ['tonight', 'tomorrow', 'weekend'];
   for (const preset of presets) {
