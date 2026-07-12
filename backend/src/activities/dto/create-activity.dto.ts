@@ -58,6 +58,11 @@ export class CreateActivityDto {
   tags?: string[];
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  vibeTags?: string[];
+
+  @IsOptional()
   @IsString()
   coverUrl?: string;
 }

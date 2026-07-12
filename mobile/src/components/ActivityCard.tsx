@@ -3,61 +3,117 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import type { Activity } from '../types/auth';
 import { colors, radii, spacing, typography } from '../theme/tokens';
-import { StatusBadge } from './StatusBadge';
+import {
+  getHostFirstName,
+  getPeopleGoingLine,
+  getUrgencyHint,
+  getWeatherVibeLine,
+} from '../utils/activityDisplay';
+import { AppButton } from './AppButton';
+import { ActivityCountdown } from './ActivityCountdown';
+import { ActivityCover } from './ActivityCover';
+import { Avatar } from './Avatar';
+import { AvatarStack } from './AvatarStack';
+import { VibeTagRow } from './VibeTagRow';
+import { getActivityPeople } from '../utils/avatarDisplay';
+import { getActivityLocationLine } from '../utils/locationDisplay';
+import { getActivityVibeTags } from '../utils/vibeDisplay';
 
 type Props = {
   activity: Activity;
   onPress: () => void;
-  onPressIn?: () => void;
+  onJoin?: () => void;
+  joining?: boolean;
+  featured?: boolean;
+  compact?: boolean;
+  showJoinButton?: boolean;
 };
 
-export function ActivityCard({ activity, onPress, onPressIn }: Props) {
-  const catIcon = activity.category?.icon ?? '✨';
-  const catName = activity.category?.name ?? 'Activity';
-  const distance = activity.distanceKm ?? 0;
+export function ActivityCard({
+  activity,
+  onPress,
+  onJoin,
+  joining = false,
+  featured = false,
+  compact = false,
+  showJoinButton = true,
+}: Props) {
+  const hostName = getHostFirstName(activity.creator?.fullName);
+  const isFull = activity.status === 'full';
+  const urgency = getUrgencyHint(activity);
+  const peopleLine = getPeopleGoingLine(activity);
+  const weatherLine = getWeatherVibeLine(activity.startDatetime, activity.id);
+  const people = getActivityPeople(activity);
+  const vibeTags = getActivityVibeTags(activity);
+  const isFeatured = featured || activity.featured;
 
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={onPressIn}
-      style={({ pressed }) => [styles.press, pressed && { opacity: 0.92 }]}>
-      <LinearGradient
-        colors={['rgba(77,181,255,0.12)', 'rgba(140,255,79,0.06)', colors.surface]}
-        style={styles.card}>
-        <View style={styles.cover}>
-          <Text style={styles.coverEmoji}>{catIcon} Activity</Text>
-          <View style={styles.badgeWrap}>
-            <StatusBadge status={activity.status} />
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [pressed && styles.pressed]}>
+        <LinearGradient
+          colors={
+            isFeatured
+              ? ['rgba(140,255,79,0.14)', 'rgba(77,181,255,0.1)', colors.surface]
+              : ['rgba(77,181,255,0.1)', 'rgba(140,255,79,0.05)', colors.surface]
+          }
+          style={[styles.card, isFeatured && styles.cardFeatured]}>
+          <View style={styles.hostRow}>
+            <Avatar
+              name={activity.creator?.fullName ?? hostName}
+              uri={activity.creator?.profilePhoto}
+              size={28}
+            />
+            <Text style={styles.hostLine} numberOfLines={1}>
+              <Text style={styles.hostName}>{hostName}</Text>
+              <Text style={styles.hostSuffix}> is hosting{isFeatured ? ' 🌟' : ''}</Text>
+            </Text>
+            {urgency ? <Text style={styles.urgency}>{urgency}</Text> : null}
           </View>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.cat}>{catName}</Text>
-          <Text style={styles.dist}>{distance.toFixed(1)} km</Text>
-        </View>
-        <Text style={styles.title} numberOfLines={2}>
-          {activity.title}
-        </Text>
-        <Text style={styles.loc} numberOfLines={1}>
-          📍 {activity.locationName}
-        </Text>
-        <View style={styles.footer}>
-          <Text style={styles.meta}>
-            🕐 {new Date(activity.startDatetime).toLocaleString([], {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+
+          <ActivityCover activity={activity} height={128} />
+
+          <Text style={[styles.title, isFeatured && styles.titleFeatured]} numberOfLines={2}>
+            {activity.title}
           </Text>
-          <Text style={styles.joined}>{activity.joinedCount} In</Text>
+
+          <VibeTagRow tags={vibeTags} compact max={3} />
+
+          <Text style={styles.loc} numberOfLines={1}>
+            {getActivityLocationLine(activity)}
+          </Text>
+
+          <Text style={styles.vibeLine}>{weatherLine}</Text>
+          {activity.joinedCount > 0 ? (
+            <View style={styles.peopleRow}>
+              <AvatarStack people={people} total={activity.joinedCount} size={28} />
+              <Text style={styles.socialLine}>{peopleLine.replace(/^👥\s*/, '')}</Text>
+            </View>
+          ) : (
+            <Text style={styles.socialLine}>{peopleLine}</Text>
+          )}
+          <ActivityCountdown startIso={activity.startDatetime} compact />
+        </LinearGradient>
+      </Pressable>
+
+      {showJoinButton && onJoin ? (
+        <View style={styles.ctaRow}>
+          <AppButton
+            title={joining ? 'Joining...' : isFull ? 'Full' : "I'm In 🔥"}
+            onPress={onJoin}
+            disabled={joining || isFull}
+          />
         </View>
-      </LinearGradient>
-    </Pressable>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  press: { borderRadius: radii.lg, marginBottom: spacing.md },
+  wrap: { marginBottom: spacing.md, borderRadius: radii.lg },
+  wrapCompact: { width: 300, marginRight: spacing.md },
+  pressed: { opacity: 0.92 },
   card: {
     borderRadius: radii.lg,
     padding: spacing.md,
@@ -65,26 +121,44 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  cover: {
-    height: 112,
-    borderRadius: radii.md,
-    backgroundColor: 'rgba(15,23,42,0.85)',
+  cardFeatured: {
+    borderColor: 'rgba(140,255,79,0.45)',
+  },
+  hostRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  coverEmoji: { fontSize: 28, color: colors.textSecondary },
-  badgeWrap: { position: 'absolute', top: 8, right: 8 },
-  row: {
+  hostLine: { flex: 1, ...typography.caption },
+  hostName: { color: colors.primary, fontWeight: '700' },
+  hostSuffix: { color: colors.textSecondary },
+  urgency: {
+    ...typography.caption,
+    color: colors.warning,
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  title: { ...typography.title, color: colors.text, marginBottom: 4 },
+  titleFeatured: { fontSize: 20, fontWeight: '700' },
+  loc: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
+  vibeLine: { ...typography.caption, color: colors.secondary, marginBottom: 4 },
+  peopleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.sm,
     marginBottom: 4,
   },
-  cat: { ...typography.caption, color: colors.secondary },
-  dist: { ...typography.caption, color: colors.muted },
-  title: { ...typography.title, color: colors.text, marginBottom: 4 },
-  loc: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
-  footer: { flexDirection: 'row', justifyContent: 'space-between' },
-  meta: { ...typography.caption, color: colors.muted },
-  joined: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+  socialLine: { ...typography.caption, color: colors.text, fontWeight: '600', flex: 1 },
+  ctaRow: {
+    marginTop: -spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomLeftRadius: radii.lg,
+    borderBottomRightRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0,
+    borderColor: colors.border,
+  },
 });

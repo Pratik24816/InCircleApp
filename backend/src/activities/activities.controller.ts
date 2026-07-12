@@ -40,6 +40,16 @@ export class ActivitiesController {
   }
 
   @Public()
+  @Get('tonight')
+  tonight(@Query('city') city?: string, @Query('lat') lat?: string, @Query('lng') lng?: string) {
+    return this.activitiesService.findTonight(
+      city,
+      lat ? parseFloat(lat) : undefined,
+      lng ? parseFloat(lng) : undefined,
+    );
+  }
+
+  @Public()
   @Get('featured')
   featured(@Query('city') city?: string, @Query('lat') lat?: string, @Query('lng') lng?: string) {
     return this.activitiesService.findFeatured(

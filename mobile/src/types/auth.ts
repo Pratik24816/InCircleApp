@@ -62,6 +62,7 @@ export type Activity = {
   status: string;
   approvalStatus: string;
   tags: string[];
+  vibeTags?: string[];
   featured?: boolean;
   distanceKm?: number;
   category?: Category;
@@ -71,6 +72,11 @@ export type Activity = {
     username: string | null;
     profilePhoto?: string;
   };
+  participants?: {
+    id: string;
+    fullName: string;
+    profilePhoto?: string;
+  }[];
 };
 
 export type CreateActivityPayload = {
@@ -78,11 +84,13 @@ export type CreateActivityPayload = {
   description: string;
   categoryId: string;
   startDatetime: string;
+  endDatetime?: string | null;
   locationName: string;
   city: string;
   groupType: Activity['groupType'];
   groupSize?: number | null;
   tags?: string[];
+  coverUrl?: string | null;
   latitude?: number;
   longitude?: number;
 };
